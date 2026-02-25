@@ -86,14 +86,17 @@ public class GameManager {
             List<BreakableWall> shuffledBoxes = new ArrayList<>(breakables);
             Collections.shuffle(shuffledBoxes);
 
-            // ✨ สร้างถุงไอเทม: ดำ 4 ชิ้น, แดง 4 ชิ้น
+            // ✨ เช็คโหมด: ถ้าเล่นคนเดียว (mode 1) ไอเทมอย่างละ 2, ถ้าสองคน (mode 2) อย่างละ 4
+            int itemCount = (mode == 1) ? 2 : 4;
+
+            // สร้างถุงไอเทมตามจำนวนที่กำหนดไว้ด้านบน
             List<Item.ItemType> itemPool = new ArrayList<>();
-            for (int i = 0; i < 4; i++) itemPool.add(Item.ItemType.EXTRA_BOMB);
-            for (int i = 0; i < 4; i++) itemPool.add(Item.ItemType.FIRE_POWER);
+            for (int i = 0; i < itemCount; i++) itemPool.add(Item.ItemType.EXTRA_BOMB);
+            for (int i = 0; i < itemCount; i++) itemPool.add(Item.ItemType.FIRE_POWER);
             Collections.shuffle(itemPool); // สับไพ่ไอเทม
 
-            // ซ่อนลงในกล่อง (สูงสุด 8 ใบ)
-            int itemsToHide = Math.min(8, breakables.size());
+            // ซ่อนลงในกล่อง (เช็คไม่ให้ใส่เกินจำนวนกล่อง หรือจำนวนไอเทมที่มี)
+            int itemsToHide = Math.min(itemPool.size(), breakables.size());
             for (int i = 0; i < itemsToHide; i++) {
                 hiddenItems.put(new Point(shuffledBoxes.get(i).getX(), shuffledBoxes.get(i).getY()), itemPool.get(i));
             }

@@ -8,6 +8,7 @@ import java.awt.Color;
 public class Player extends GameObject implements Destroyable {
     private boolean isAlive;
     private Color playerColor; // ✨ เพิ่มตัวแปรเก็บสีของตัวละคร
+    private static final int MAX_FIRE_RADIUS = 3; // ✨ กำหนดค่าสูงสุดของไฟไว้ที่นี่
 
     // ✨ อัปเดต Constructor ให้รับค่าสีเข้ามาด้วย
     public Player(int x, int y, Color color) {
@@ -72,14 +73,18 @@ public class Player extends GameObject implements Destroyable {
         return false; // เต็มแล้ว
     }
 
-    // สมมติระยะไฟสูงสุดคือ 5 ช่อง
     // กำหนดระยะไฟสูงสุดคือ 3 ช่อง
     public boolean addRadius() {
-        if (bombRadius < 3) { // ✨ เปลี่ยนตรงนี้เป็นเลข 3 ครับ
+        // ✨ เปลี่ยนเลข 3 เป็น MAX_FIRE_RADIUS
+        if (bombRadius < MAX_FIRE_RADIUS) {
             bombRadius++;
-            return true;  // อัปเกรดสำเร็จ
+            return true;
         }
-        return false; // เต็ม MAX แล้ว (ส่งค่า false กลับไปให้ไอเทมโชว์ข้อความ)
+        return false;
+    }
+    // ✨ เพิ่มเมธอดนี้ไว้ด้านล่างๆ ครับ
+    public int getMaxFireRadius() {
+        return MAX_FIRE_RADIUS;
     }
 
     public int getBombRadius() {

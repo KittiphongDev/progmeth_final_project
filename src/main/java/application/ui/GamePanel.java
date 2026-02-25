@@ -80,70 +80,90 @@ public class GamePanel extends JPanel {
         // ✨ วาดสถานะของ Player 1 (ซ้ายบน)
         if (gameManager.getPlayer1() != null) {
             Player p1 = gameManager.getPlayer1();
-            g.setColor(Color.CYAN);
             g.setFont(new Font("Arial", Font.BOLD, 14));
-            g.drawString("P1 FIRE: " + p1.getBombRadius(), 10, 20);
 
-            int max = p1.getMaxBombs();
-            int active = p1.getActiveBombs();
-            int brightCount = max - active;
+            // --- 🔥 วาดไอคอนระยะไฟ (สีส้ม) ---
+            int fireStartX = 10; // เริ่มวาดที่ขอบซ้าย
+            int currentFire = p1.getBombRadius();
+            int maxFire = p1.getMaxFireRadius(); // ดึงค่า Max ที่เราเพิ่งสร้างมาใช้
+
+            for (int i = 0; i < maxFire; i++) {
+                if (i < currentFire) {
+                    g.setColor(Color.ORANGE); // สว่าง (มีพลัง)
+                } else {
+                    g.setColor(new Color(100, 50, 0)); // มืด (ยังไม่ได้เก็บ)
+                }
+                g.fillOval(fireStartX + (i * 18), 8, 14, 14);
+            }
+
+            // --- 💣 วาดไอคอนระเบิด (สีฟ้า) ---
+            int bombStartX = fireStartX + (maxFire * 18) + 20; // ขยับไปทางขวาต่อจากไอคอนไฟ
+            g.setColor(Color.CYAN);
+            // g.drawString("P1 BOMB:", bombStartX - 70, 20); // (บรรทัดนี้ลบทิ้งได้เลยครับ ไม่ต้องโชว์ข้อความแล้ว)
+
+            int maxBombs = p1.getMaxBombs();
+            int activeBombs = p1.getActiveBombs();
+            int brightCount = maxBombs - activeBombs;
 
             if (brightCount > 0 && !p1.canPlaceBomb()) {
                 brightCount--;
             }
 
-            int startX = 100;
-            for (int i = 0; i < max; i++) {
+            for (int i = 0; i < maxBombs; i++) {
                 if (i < brightCount) g.setColor(Color.CYAN);
                 else g.setColor(new Color(0, 80, 100));
-                g.fillOval(startX + (i * 18), 8, 14, 14);
+                g.fillOval(bombStartX + (i * 18), 8, 14, 14);
             }
 
-            // ⏳ โชว์ตัวเลข Cooldown ของ P1 (โชว์ตลอดเวลา)
+            // ⏳ โชว์ตัวเลข Cooldown ของ P1
             double cd1 = p1.getCooldownRemaining();
-            if (cd1 > 0) {
-                g.setColor(Color.YELLOW); // กำลังติดดีเลย์ (สีเหลือง)
-            } else {
-                g.setColor(Color.WHITE);  // พร้อมแล้ว (สีขาว)
-            }
+            if (cd1 > 0) g.setColor(Color.YELLOW); else g.setColor(Color.WHITE);
             g.setFont(new Font("Arial", Font.PLAIN, 12));
-            g.drawString(String.format("%.1fs", cd1), startX + (max * 18) + 5, 20);
+            g.drawString(String.format("%.1fs", cd1), bombStartX + (maxBombs * 18) + 5, 20);
         }
 
         // ✨ วาดสถานะของ Player 2 (ขวาบน)
         if (gameManager.getPlayer2() != null) {
             Player p2 = gameManager.getPlayer2();
-            g.setColor(Color.GREEN);
             g.setFont(new Font("Arial", Font.BOLD, 14));
 
-            String fireText = "P2 FIRE: " + p2.getBombRadius();
-            int textX = getWidth() - 100;
-            g.drawString(fireText, textX, 20);
+            // คำนวณตำแหน่งเริ่มต้นจากขวาสุดของจอ
+            int screenWidth = getWidth();
+            int p2MaxFire = p2.getMaxFireRadius();
+            int p2MaxBombs = p2.getMaxBombs();
 
-            int max = p2.getMaxBombs();
-            int active = p2.getActiveBombs();
-            int brightCount = max - active;
+            // --- 💣 วาดไอคอนระเบิด (สีเขียว) ไว้ขวาสุด ---
+            int bombStartX = screenWidth - (p2MaxBombs * 18) - 40; // เผื่อที่ให้ตัวเลข cooldown นิดหน่อย
 
-            if (brightCount > 0 && !p2.canPlaceBomb()) {
-                brightCount--;
-            }
+            int activeBombs = p2.getActiveBombs();
+            int brightCount = p2MaxBombs - activeBombs;
+            if (brightCount > 0 && !p2.canPlaceBomb()) brightCount--;
 
-            int startX = textX - (max * 18) - 10;
-            for (int i = 0; i < max; i++) {
+            for (int i = 0; i < p2MaxBombs; i++) {
                 if (i < brightCount) g.setColor(Color.GREEN);
                 else g.setColor(new Color(0, 80, 0));
-                g.fillOval(startX + (i * 18), 8, 14, 14);
+                g.fillOval(bombStartX + (i * 18), 8, 14, 14);
             }
 
-            // ⏳ โชว์ตัวเลข Cooldown ของ P2 (โชว์ตลอดเวลา)
+            // ⏳ โชว์ตัวเลข Cooldown ของ P2 (อยู่ทางซ้ายของระเบิด)
             double cd2 = p2.getCooldownRemaining();
-            if (cd2 > 0) {
-                g.setColor(Color.YELLOW); // กำลังติดดีเลย์ (สีเหลือง)
-            } else {
-                g.setColor(Color.WHITE);  // พร้อมแล้ว (สีขาว)
-            }
+            if (cd2 > 0) g.setColor(Color.YELLOW); else g.setColor(Color.WHITE);
             g.setFont(new Font("Arial", Font.PLAIN, 12));
-            g.drawString(String.format("%.1fs", cd2), startX - 35, 20);
+            g.drawString(String.format("%.1fs", cd2), bombStartX - 35, 20);
+
+
+            // --- 🔥 วาดไอคอนระยะไฟ (สีส้ม) ไว้ทางซ้ายของระเบิดอีกที ---
+            int fireStartX = bombStartX - (p2MaxFire * 18) - 20; // เว้นระยะห่างจากกลุ่มระเบิด 20px
+            int currentFire = p2.getBombRadius();
+
+            for (int i = 0; i < p2MaxFire; i++) {
+                if (i < currentFire) {
+                    g.setColor(Color.ORANGE);
+                } else {
+                    g.setColor(new Color(100, 50, 0));
+                }
+                g.fillOval(fireStartX + (i * 18), 8, 14, 14);
+            }
         }
     }
 
