@@ -1,5 +1,6 @@
 package application.managers;
-
+import java.awt.Point;
+import java.util.Collections;
 import application.core.Destroyable;
 import application.core.GameObject;
 import application.entities.*;
@@ -16,6 +17,7 @@ public class GameManager {
     private GameState currentState;
     private int currentMode;
     private List<GameObject> gameObjects;
+    private List<Point> itemLocations = new ArrayList<>(); // ✨ เพิ่มตัวแปรนี้
     private Player player1;
     private Player player2;
     private Door hiddenDoor;
@@ -78,6 +80,19 @@ public class GameManager {
         }
 
         gameObjects.addAll(walls);
+
+        itemLocations.clear();
+        if (breakables.size() > 0) {
+            // ก๊อปปี้รายชื่อกล่องไม้มาสับสลับที่ (Shuffle)
+            List<BreakableWall> shuffledBoxes = new ArrayList<>(breakables);
+            Collections.shuffle(shuffledBoxes);
+
+            // เลือกกล่อง 5 ใบแรกที่ถูกสับมาเป็นจุดซ่อนไอเทม
+            for (int i = 0; i < 5 && i < shuffledBoxes.size(); i++) {
+                itemLocations.add(new Point(shuffledBoxes.get(i).getX(), shuffledBoxes.get(i).getY()));
+            }
+        }
+
         player1 = new Player(1, 1, Color.BLUE);
         gameObjects.add(player1);
         if (mode == 2) {
@@ -132,8 +147,8 @@ public class GameManager {
         }
 
         // 3. ทำลายวัตถุจากการระเบิด
-        for (Bomb b : readyBombs) triggerExplosion(b.getX(), b.getY(), toRemove);
-        gameObjects.removeAll(toRemove);
+// ✨ ส่งรัศมีระเบิด (Radius) เข้าไปให้ระบบคำนวณด้วย
+        for (Bomb b : readyBombs) triggerExplosion(b.getX(), b.getY(), b.getRadius(), toRemove);        gameObjects.removeAll(toRemove);
 
         // 4. เช็คการเก็บไอเทม (Item Collection)
         List<GameObject> itemsToRemove = new ArrayList<>();
@@ -151,6 +166,15 @@ public class GameManager {
         }
         gameObjects.removeAll(itemsToRemove);
 
+        List<GameObject> effectsToRemove = new ArrayList<>();
+        for (GameObject obj : gameObjects) {
+            // ถ้าเป็นเอฟเฟกต์ไฟและหมดเวลาแล้ว
+            if (obj instanceof Explosion && ((Explosion) obj).isFinished()) {
+                effectsToRemove.add(obj);
+            }
+        }
+        gameObjects.removeAll(effectsToRemove);
+
         // 5. เช็คสถานะจบเกม
         checkGameOver();
     }
@@ -166,23 +190,14 @@ public class GameManager {
         }
     }
     public void handleInput(int keyCode) {
-        // ในส่วน handleInput (หรือ handlePlayerLogic) ของ GameManager
-        if (keyCode == KeyEvent.VK_SPACE) {
-            if (player1.canPlaceBomb()) {
-                // สร้างระเบิดโดยส่งรัศมีของ Player 1 ไปด้วย
-                Bomb newBomb = new Bomb(player1.getX(), player1.getY(), player1.getBombRadius());
-                gameObjects.add(newBomb);
-                player1.increaseActiveBombs(); // นับว่าวางเพิ่ม 1 ลูก
-            }
-        }
-
+        // 1. ถ้าอยู่หน้าเมนู
         if (currentState == GameState.MAIN_MENU) {
             if (keyCode == KeyEvent.VK_1) startGame(1);
             else if (keyCode == KeyEvent.VK_2) startGame(2);
             return;
         }
 
-        // ปุ่ม Pause
+        // 2. ปุ่ม Pause
         if (keyCode == KeyEvent.VK_P) {
             if (currentState == GameState.PLAYING) currentState = GameState.PAUSED;
             else if (currentState == GameState.PAUSED) {
@@ -192,34 +207,85 @@ public class GameManager {
             return;
         }
 
+        // 3. ถ้าไม่ได้เล่นอยู่ (เช่น จบเกม) ให้ดักปุ่ม R กับ M
         if (currentState != GameState.PLAYING) {
             if (keyCode == KeyEvent.VK_R) startGame(currentMode);
             else if (keyCode == KeyEvent.VK_M) currentState = GameState.MAIN_MENU;
             return;
         }
 
-        // ควบคุม Player (เหมือนเดิม)
+        // 4. ถ้ากำลังเล่นอยู่ (PLAYING) ค่อยให้ขยับและวางระเบิดได้
         handlePlayerLogic(keyCode);
     }
 
     private void handlePlayerLogic(int keyCode) {
+        // --- ควบคุม Player 1 ---
         if (player1 != null && player1.isAlive()) {
-            int nx = player1.getX(), ny = player1.getY();
-            if (keyCode == KeyEvent.VK_W) ny--;
-            else if (keyCode == KeyEvent.VK_S) ny++;
-            else if (keyCode == KeyEvent.VK_A) nx--;
-            else if (keyCode == KeyEvent.VK_D) nx++;
-            else if (keyCode == KeyEvent.VK_SPACE) gameObjects.add(new Bomb(player1.getX(), player1.getY(), player1.getBombRadius()));
-            if (isValidMove(nx, ny)) { player1.setX(nx); player1.setY(ny); }
+            int dx = 0, dy = 0; // ทิศทางที่จะไป
+
+            // กำหนดทิศทางจากปุ่มกด
+            if (keyCode == KeyEvent.VK_W) dy = -1;
+            else if (keyCode == KeyEvent.VK_S) dy = 1;
+            else if (keyCode == KeyEvent.VK_A) dx = -1;
+            else if (keyCode == KeyEvent.VK_D) dx = 1;
+
+                // การวางระเบิด
+            else if (keyCode == KeyEvent.VK_SPACE) {
+                if (player1.canPlaceBomb()) {
+                    gameObjects.add(new Bomb(player1.getX(), player1.getY(), player1.getBombRadius()));
+                    player1.increaseActiveBombs();
+                }
+            }
+
+            // ✨ ระบบก้าวเท้าทีละช่อง ตามไอเดียของคุณเลยครับ!
+            if (dx != 0 || dy != 0) {
+                int moveX = 0, moveY = 0;
+                // ลูปเช็คทางเดินข้างหน้าทีละช่อง ตามความเร็ว (Speed) ที่มี
+                for (int s = 1; s <= player1.getSpeed(); s++) {
+                    if (isValidMove(player1.getX() + (dx * s), player1.getY() + (dy * s))) {
+                        // ถ้าช่องนั้นว่าง ให้จำระยะทางไว้
+                        moveX = dx * s;
+                        moveY = dy * s;
+                    } else {
+                        // ถ้าเจอช่องที่ไม่ว่าง (ชนกำแพง/ระเบิด) ให้หยุดเช็คทันที!
+                        break;
+                    }
+                }
+                // ขยับตัวไปตามระยะทางที่ไกลที่สุดที่เดินได้
+                player1.setX(player1.getX() + moveX);
+                player1.setY(player1.getY() + moveY);
+            }
         }
+
+        // --- ควบคุม Player 2 ---
         if (player2 != null && player2.isAlive()) {
-            int nx = player2.getX(), ny = player2.getY();
-            if (keyCode == KeyEvent.VK_UP) ny--;
-            else if (keyCode == KeyEvent.VK_DOWN) ny++;
-            else if (keyCode == KeyEvent.VK_LEFT) nx--;
-            else if (keyCode == KeyEvent.VK_RIGHT) nx++;
-            else if (keyCode == KeyEvent.VK_ENTER) gameObjects.add(new Bomb(player2.getX(), player2.getY(), player1.getBombRadius()));
-            if (isValidMove(nx, ny)) { player2.setX(nx); player2.setY(ny); }
+            int dx = 0, dy = 0;
+
+            if (keyCode == KeyEvent.VK_UP) dy = -1;
+            else if (keyCode == KeyEvent.VK_DOWN) dy = 1;
+            else if (keyCode == KeyEvent.VK_LEFT) dx = -1;
+            else if (keyCode == KeyEvent.VK_RIGHT) dx = 1;
+
+            else if (keyCode == KeyEvent.VK_ENTER) {
+                if (player2.canPlaceBomb()) {
+                    gameObjects.add(new Bomb(player2.getX(), player2.getY(), player2.getBombRadius()));
+                    player2.increaseActiveBombs();
+                }
+            }
+
+            if (dx != 0 || dy != 0) {
+                int moveX = 0, moveY = 0;
+                for (int s = 1; s <= player2.getSpeed(); s++) {
+                    if (isValidMove(player2.getX() + (dx * s), player2.getY() + (dy * s))) {
+                        moveX = dx * s;
+                        moveY = dy * s;
+                    } else {
+                        break;
+                    }
+                }
+                player2.setX(player2.getX() + moveX);
+                player2.setY(player2.getY() + moveY);
+            }
         }
     }
 
@@ -234,25 +300,88 @@ public class GameManager {
         return true;
     }
 
-    public void triggerExplosion(int cx, int cy, List<GameObject> toRemove) {
-        int[][] dirs = {{0,0}, {1,0}, {-1,0}, {0,1}, {0,-1}};
-        List<Item> itemsToAdd = new ArrayList<>(); // ✨ เพิ่มบรรทัดนี้!
+    // เมธอดหลัก: จัดการการระเบิดและเสกเอฟเฟกต์ไฟ
+    public void triggerExplosion(int centerX, int centerY, int radius, List<GameObject> toRemove) {
+        // ใช้ลิสต์เดียวเก็บทั้ง Item ที่ดรอป และ Explosion เอฟเฟกต์ไฟ
+        List<GameObject> newObjects = new ArrayList<>();
 
-        for (int[] d : dirs) {
-            int tx = cx + d[0], ty = cy + d[1];
-            for (GameObject obj : gameObjects) {
-                if (obj.getX() == tx && obj.getY() == ty && obj instanceof Destroyable) {
-                    ((Destroyable) obj).onDestroy();
-                    if (obj instanceof BreakableWall) {
-                        toRemove.add(obj);
-                        if (Math.random() < 0.3) {
-                            itemsToAdd.add(new Item(obj.getX(), obj.getY(), Item.ItemType.values()[(int)(Math.random()*3)]));
+        // ทิศทาง: ขวา, ซ้าย, ลง, ขึ้น
+        int[][] directions = {{1,0}, {-1,0}, {0,1}, {0,-1}};
+
+        // 1. จัดการจุดศูนย์กลางระเบิดก่อน
+        newObjects.add(new Explosion(centerX, centerY));
+        destroyAt(centerX, centerY, toRemove, newObjects);
+
+        // 2. ปล่อยไฟพุ่งออกไป 4 ทิศทาง
+        for (int[] dir : directions) {
+            // ก้าวไปทีละช่องตามระยะความแรง (radius)
+            for (int step = 1; step <= radius; step++) {
+                int tx = centerX + (dir[0] * step);
+                int ty = centerY + (dir[1] * step);
+
+                boolean stopped = false;      // เช็คว่าไฟต้องหยุดไหม
+                boolean hitBreakable = false; // เช็คว่าไฟชนกล่องไม้ไหม
+
+                // ตรวจสอบว่าในช่องพิกัด (tx, ty) มีวัตถุอะไรอยู่บ้าง
+                for (GameObject obj : gameObjects) {
+                    if (obj.getX() == tx && obj.getY() == ty) {
+
+                        if (obj instanceof SolidWall) {
+                            stopped = true; // ชนกำแพงเหล็ก ไฟหยุดสนิท (ไม่วาดไฟทับกำแพงเหล็ก)
+                            break;
                         }
+                        else if (obj instanceof BreakableWall) {
+                            hitBreakable = true;
+                            stopped = true; // ชนกล่องไม้ ทำลายได้ แต่ไฟต้องหยุดทะลวงต่อ
+                        }
+                        else if (obj instanceof Player) {
+                            ((Player) obj).onDestroy(); // ผู้เล่นโดนไฟระเบิดตาย
+                        }
+                    }
+                }
+
+                // ตัดสินใจวาดไฟและพังของตามสถานะการชน
+                if (stopped) {
+                    if (hitBreakable) {
+                        newObjects.add(new Explosion(tx, ty)); // วาดเอฟเฟกต์ไฟทับตำแหน่งกล่องไม้
+                        destroyAt(tx, ty, toRemove, newObjects); // สั่งพังกล่องและดรอปของ
+                    }
+                    break; // หยุดการทำงานของทิศทางนี้ทันที (ไม่เช็ค step ถัดไป)
+                } else {
+                    // ถ้าช่องนั้นว่าง (ไม่ชนกำแพง/กล่อง) ให้วาดเอฟเฟกต์ไฟไปเรื่อยๆ
+                    newObjects.add(new Explosion(tx, ty));
+                    // (เผื่อมีผู้เล่นยืนอยู่ จะได้ตายด้วย)
+                    destroyAt(tx, ty, toRemove, newObjects);
+                }
+            }
+        }
+
+        // แอดทั้งเอฟเฟกต์ไฟและไอเทมเข้าสู่ระบบเกมหลัก
+        gameObjects.addAll(newObjects);
+    }
+
+    // เมธอดผู้ช่วย: สั่งพังของและดรอปไอเทมในพิกัดที่กำหนด
+    private void destroyAt(int tx, int ty, List<GameObject> toRemove, List<GameObject> newObjects) {
+        for (GameObject obj : gameObjects) {
+            if (obj.getX() == tx && obj.getY() == ty && obj instanceof Destroyable) {
+                ((Destroyable) obj).onDestroy(); // สั่งให้วัตถุพัง/ตาย
+
+                if (obj instanceof BreakableWall) {
+                    toRemove.add(obj); // เอากล่องไม้ออก
+
+                    // เช็คพิกัดว่ากล่องใบนี้มีไอเทมซ่อนอยู่ไหม
+                    Point p = new Point(obj.getX(), obj.getY());
+                    if (itemLocations.contains(p)) {
+                        // สุ่มประเภทไอเทมที่จะดรอป
+                        Item.ItemType[] types = Item.ItemType.values();
+                        Item.ItemType randomType = types[(int)(Math.random() * types.length)];
+
+                        newObjects.add(new Item(obj.getX(), obj.getY(), randomType));
+                        itemLocations.remove(p); // เอาพิกัดออกเพื่อไม่ให้ดรอปซ้ำ
                     }
                 }
             }
         }
-        gameObjects.addAll(itemsToAdd);
     }
 
     public void drawGame(Graphics g) { if (currentState != GameState.MAIN_MENU) for (GameObject obj : gameObjects) obj.draw(g); }
@@ -263,7 +392,10 @@ public class GameManager {
         switch (item.getType()) {
             case EXTRA_BOMB: p.addMaxBombs(); break;
             case FIRE_POWER: p.addRadius(); break;
-            case SPEED: /* เพิ่มระบบความเร็วที่นี่ */ break;
+            case SPEED: p.addSpeed(); break; // ✨ ใส่ตรงนี้แล้ว! ไอเทมสีฟ้าทำงานแล้ว
         }
     }
+
+    public Player getPlayer1() { return player1; }
+    public Player getPlayer2() { return player2; }
 }

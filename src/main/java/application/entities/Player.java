@@ -40,7 +40,15 @@ public class Player extends GameObject implements Destroyable {
     private int maxBombs = 1;
     private int activeBombs = 0;
     private int bombRadius = 1;
+    private int speed = 1; // เริ่มต้นก้าวทีละ 1 ช่อง
 
+    public void addSpeed() {
+        if (speed < 3) speed++; // เก็บไอเทมฟ้าแล้วก้าวได้ไกลขึ้น (สูงสุด 3 ช่อง)
+    }
+
+    public int getSpeed() {
+        return speed;
+    }
     // เมธอดสำหรับจัดการจำนวนระเบิด
     public boolean canPlaceBomb() {
         return activeBombs < maxBombs;
@@ -65,5 +73,8 @@ public class Player extends GameObject implements Destroyable {
 
     public int getBombRadius() {
         return bombRadius;
+    }
+    public int getMaxBombs() {
+        return maxBombs;
     }
 }

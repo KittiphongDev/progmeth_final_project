@@ -1,5 +1,6 @@
 package application.ui;
 
+import application.entities.Player;
 import application.managers.GameManager;
 import javax.swing.JPanel;
 import javax.swing.Timer;
@@ -69,6 +70,27 @@ public class GamePanel extends JPanel {
         if (isGameOverState()) {
             String msg = getEndGameMessage();
             drawOverlay(g, msg, "Press 'R' to Restart | 'M' for Menu", Color.WHITE);
+        }
+
+        g.setColor(Color.WHITE);
+        g.setFont(new Font("Arial", Font.BOLD, 20));
+        String timeText = "TIME: " + gameManager.getGameTimer();
+        g.drawString(timeText, getWidth() / 2 - 40, 25);
+
+        // ✨ วาดสถานะของ Player 1 (ซ้ายบน)
+        if (gameManager.getPlayer1() != null) {
+            g.setColor(Color.CYAN);
+            g.setFont(new Font("Arial", Font.BOLD, 14));
+            Player p1 = gameManager.getPlayer1();
+            g.drawString("P1 BOMB: " + p1.getMaxBombs() + " | FIRE: " + p1.getBombRadius(), 10, 20);
+        }
+
+        // ✨ วาดสถานะของ Player 2 (ขวาบน)
+        if (gameManager.getPlayer2() != null) {
+            g.setColor(Color.GREEN);
+            g.setFont(new Font("Arial", Font.BOLD, 14));
+            Player p2 = gameManager.getPlayer2();
+            g.drawString("P2 BOMB: " + p2.getMaxBombs() + " | FIRE: " + p2.getBombRadius(), getWidth() - 200, 20);
         }
     }
 
