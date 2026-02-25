@@ -40,18 +40,14 @@ public class Player extends GameObject implements Destroyable {
     private int maxBombs = 1;
     private int activeBombs = 0;
     private int bombRadius = 1;
-    private int speed = 1; // เริ่มต้นก้าวทีละ 1 ช่อง
+//    private int speed = 1; // เริ่มต้นก้าวทีละ 1 ช่อง
 
     private long lastBombTime = 0; // เก็บเวลาตอนที่วางระเบิดล่าสุด
     private static final long BOMB_COOLDOWN = 500; // ตั้งคูลดาวน์ไว้ 0.5 วินาที (500 มิลลิวินาที เปลี่ยนได้ครับ)
 
-    public void addSpeed() {
-        if (speed < 3) speed++; // เก็บไอเทมฟ้าแล้วก้าวได้ไกลขึ้น (สูงสุด 3 ช่อง)
-    }
-
-    public int getSpeed() {
-        return speed;
-    }
+//    public void addSpeed() { if (speed < 3) speed++; // เก็บไอเทมฟ้าแล้วก้าวได้ไกลขึ้น (สูงสุด 3 ช่อง) }
+//    public int getSpeed() {return speed;}
+    
     // เมธอดสำหรับจัดการจำนวนระเบิด
     public boolean canPlaceBomb() {
         long currentTime = System.currentTimeMillis();

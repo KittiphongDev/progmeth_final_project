@@ -12,7 +12,7 @@ public class Item extends GameObject implements Collectible{
         switch (this.type) {
             case EXTRA_BOMB: player.addMaxBombs(); break;
             case FIRE_POWER: player.addRadius(); break;
-            case SPEED: player.addSpeed(); break;
+//            case SPEED: player.addSpeed(); break;
         }
     }
 
@@ -32,7 +32,7 @@ public class Item extends GameObject implements Collectible{
         switch (type) {
             case EXTRA_BOMB: g.setColor(Color.BLACK); break;
             case FIRE_POWER: g.setColor(Color.RED); break;
-            case SPEED: g.setColor(Color.CYAN); break;
+//            case SPEED: g.setColor(Color.CYAN); break;
         }
         // ✨ เปลี่ยนจาก x เป็น getX() และจาก y เป็น getY()
         g.fillOval(getX() * 50 + 10, getY() * 50 + 10, 30, 30);

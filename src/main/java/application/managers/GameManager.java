@@ -245,23 +245,15 @@ public class GameManager {
                 }
             }
 
-            // ✨ ระบบก้าวเท้าทีละช่อง ตามไอเดียของคุณเลยครับ!
+            // ✨ เดินทีละ 1 ช่อง (ตัดลูป Speed ออกไปแล้ว โค้ดคลีนขึ้นเยอะ!)
             if (dx != 0 || dy != 0) {
-                int moveX = 0, moveY = 0;
-                // ลูปเช็คทางเดินข้างหน้าทีละช่อง ตามความเร็ว (Speed) ที่มี
-                for (int s = 1; s <= player1.getSpeed(); s++) {
-                    if (isValidMove(player1.getX() + (dx * s), player1.getY() + (dy * s))) {
-                        // ถ้าช่องนั้นว่าง ให้จำระยะทางไว้
-                        moveX = dx * s;
-                        moveY = dy * s;
-                    } else {
-                        // ถ้าเจอช่องที่ไม่ว่าง (ชนกำแพง/ระเบิด) ให้หยุดเช็คทันที!
-                        break;
-                    }
+                int targetX = player1.getX() + dx;
+                int targetY = player1.getY() + dy;
+
+                if (isValidMove(targetX, targetY)) {
+                    player1.setX(targetX);
+                    player1.setY(targetY);
                 }
-                // ขยับตัวไปตามระยะทางที่ไกลที่สุดที่เดินได้
-                player1.setX(player1.getX() + moveX);
-                player1.setY(player1.getY() + moveY);
             }
         }
 
@@ -274,6 +266,7 @@ public class GameManager {
             else if (keyCode == KeyEvent.VK_LEFT) dx = -1;
             else if (keyCode == KeyEvent.VK_RIGHT) dx = 1;
 
+                // การวางระเบิดของ P2
             else if (keyCode == KeyEvent.VK_ENTER) {
                 if (player2.canPlaceBomb()) {
                     gameObjects.add(new Bomb(player2.getX(), player2.getY(), player2.getBombRadius()));
@@ -281,18 +274,15 @@ public class GameManager {
                 }
             }
 
+            // ✨ เดินทีละ 1 ช่อง ของ P2
             if (dx != 0 || dy != 0) {
-                int moveX = 0, moveY = 0;
-                for (int s = 1; s <= player2.getSpeed(); s++) {
-                    if (isValidMove(player2.getX() + (dx * s), player2.getY() + (dy * s))) {
-                        moveX = dx * s;
-                        moveY = dy * s;
-                    } else {
-                        break;
-                    }
+                int targetX = player2.getX() + dx;
+                int targetY = player2.getY() + dy;
+
+                if (isValidMove(targetX, targetY)) {
+                    player2.setX(targetX);
+                    player2.setY(targetY);
                 }
-                player2.setX(player2.getX() + moveX);
-                player2.setY(player2.getY() + moveY);
             }
         }
     }
@@ -381,8 +371,14 @@ public class GameManager {
                     Point p = new Point(obj.getX(), obj.getY());
                     if (itemLocations.contains(p)) {
                         // สุ่มประเภทไอเทมที่จะดรอป
-                        Item.ItemType[] types = Item.ItemType.values();
-                        Item.ItemType randomType = types[(int)(Math.random() * types.length)];
+//                        Item.ItemType[] types = Item.ItemType.values();
+//                        Item.ItemType randomType = types[(int)(Math.random() * types.length)];
+                        Item.ItemType randomType;
+                        if (Math.random() < 0.5) {
+                            randomType = Item.ItemType.EXTRA_BOMB; // โอกาส 50% ได้สีดำ
+                        } else {
+                            randomType = Item.ItemType.FIRE_POWER; // โอกาส 50% ได้สีแดง
+                        }
 
                         newObjects.add(new Item(obj.getX(), obj.getY(), randomType));
                         itemLocations.remove(p); // เอาพิกัดออกเพื่อไม่ให้ดรอปซ้ำ
