@@ -1,9 +1,21 @@
 package application.entities;
 
+import application.core.Collectible;
 import application.core.GameObject;
 import java.awt.*;
 
-public class Item extends GameObject {
+public class Item extends GameObject implements Collectible{
+
+    @Override
+    public void onCollect(Player player) {
+        // ย้าย logic การให้บัฟจาก GameManager มาไว้ที่นี่แทน
+        switch (this.type) {
+            case EXTRA_BOMB: player.addMaxBombs(); break;
+            case FIRE_POWER: player.addRadius(); break;
+            case SPEED: player.addSpeed(); break;
+        }
+    }
+
     public enum ItemType { EXTRA_BOMB, FIRE_POWER, SPEED }
     private ItemType type;
 
@@ -28,4 +40,5 @@ public class Item extends GameObject {
 
     @Override
     public void update() {}
+
 }

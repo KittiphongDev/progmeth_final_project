@@ -1,6 +1,8 @@
 package application.managers;
 import java.awt.Point;
 import java.util.Collections;
+
+import application.core.Collectible;
 import application.core.Destroyable;
 import application.core.GameObject;
 import application.entities.*;
@@ -138,8 +140,7 @@ public class GameManager {
                     readyBombs.add(b);
                     toRemove.add(b);
 
-                    // คืนโควตาให้เจ้าของ (แบบชั่วคราว: เช็คว่าใครอยู่ใกล้ระเบิดที่สุดตอนนั้น หรือคืนให้ทั้งคู่ถ้าทำระบบง่ายๆ)
-                    // หรือถ้าคุณแก้ Class Bomb ให้เก็บ owner แล้ว ให้ใช้: b.getOwner().decreaseActiveBombs();
+                    // คืนโควตาให้เจ้าของ
                     player1.decreaseActiveBombs();
                     if(player2 != null) player2.decreaseActiveBombs();
                 }
@@ -147,35 +148,42 @@ public class GameManager {
         }
 
         // 3. ทำลายวัตถุจากการระเบิด
-// ✨ ส่งรัศมีระเบิด (Radius) เข้าไปให้ระบบคำนวณด้วย
-        for (Bomb b : readyBombs) triggerExplosion(b.getX(), b.getY(), b.getRadius(), toRemove);        gameObjects.removeAll(toRemove);
+        for (Bomb b : readyBombs) {
+            triggerExplosion(b.getX(), b.getY(), b.getRadius(), toRemove);
+        }
+        gameObjects.removeAll(toRemove);
 
         // 4. เช็คการเก็บไอเทม (Item Collection)
         List<GameObject> itemsToRemove = new ArrayList<>();
         for (GameObject obj : gameObjects) {
-            if (obj instanceof Item) {
-                Item item = (Item) obj;
-                if (player1.getX() == item.getX() && player1.getY() == item.getY()) {
-                    applyItem(player1, item);
-                    itemsToRemove.add(item);
-                } else if (player2 != null && player2.getX() == item.getX() && player2.getY() == item.getY()) {
-                    applyItem(player2, item);
-                    itemsToRemove.add(item);
+            if (obj instanceof Collectible) {
+                Collectible item = (Collectible) obj;
+                GameObject gObj = (GameObject) obj;
+
+                // เช็คว่า Player 1 เดินมาทับไหม
+                if (player1 != null && player1.getX() == gObj.getX() && player1.getY() == gObj.getY()) {
+                    item.onCollect(player1); // สั่งให้ไอเทมทำงาน
+                    itemsToRemove.add(gObj); // ✨ แก้เป็น itemsToRemove แล้ว!
+                }
+                // เช็คว่า Player 2 เดินมาทับไหม
+                else if (player2 != null && player2.getX() == gObj.getX() && player2.getY() == gObj.getY()) {
+                    item.onCollect(player2);
+                    itemsToRemove.add(gObj); // ✨ แก้เป็น itemsToRemove แล้ว!
                 }
             }
         }
         gameObjects.removeAll(itemsToRemove);
 
+        // 5. ลบเอฟเฟกต์ไฟเมื่อหมดเวลา
         List<GameObject> effectsToRemove = new ArrayList<>();
         for (GameObject obj : gameObjects) {
-            // ถ้าเป็นเอฟเฟกต์ไฟและหมดเวลาแล้ว
             if (obj instanceof Explosion && ((Explosion) obj).isFinished()) {
                 effectsToRemove.add(obj);
             }
         }
         gameObjects.removeAll(effectsToRemove);
 
-        // 5. เช็คสถานะจบเกม
+        // 6. เช็คสถานะจบเกม
         checkGameOver();
     }
     private void checkGameOver() {
@@ -387,14 +395,6 @@ public class GameManager {
     public void drawGame(Graphics g) { if (currentState != GameState.MAIN_MENU) for (GameObject obj : gameObjects) obj.draw(g); }
     public GameState getCurrentState() { return currentState; }
     public int getGameTimer() { return gameTimer; }
-
-    private void applyItem(Player p, Item item) {
-        switch (item.getType()) {
-            case EXTRA_BOMB: p.addMaxBombs(); break;
-            case FIRE_POWER: p.addRadius(); break;
-            case SPEED: p.addSpeed(); break; // ✨ ใส่ตรงนี้แล้ว! ไอเทมสีฟ้าทำงานแล้ว
-        }
-    }
 
     public Player getPlayer1() { return player1; }
     public Player getPlayer2() { return player2; }
