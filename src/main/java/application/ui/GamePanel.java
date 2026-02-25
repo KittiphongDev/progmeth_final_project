@@ -79,18 +79,71 @@ public class GamePanel extends JPanel {
 
         // ✨ วาดสถานะของ Player 1 (ซ้ายบน)
         if (gameManager.getPlayer1() != null) {
+            Player p1 = gameManager.getPlayer1();
             g.setColor(Color.CYAN);
             g.setFont(new Font("Arial", Font.BOLD, 14));
-            Player p1 = gameManager.getPlayer1();
-            g.drawString("P1 BOMB: " + p1.getMaxBombs() + " | FIRE: " + p1.getBombRadius(), 10, 20);
+            g.drawString("P1 FIRE: " + p1.getBombRadius(), 10, 20);
+
+            int max = p1.getMaxBombs();
+            int active = p1.getActiveBombs();
+            int brightCount = max - active;
+
+            if (brightCount > 0 && !p1.canPlaceBomb()) {
+                brightCount--;
+            }
+
+            int startX = 100;
+            for (int i = 0; i < max; i++) {
+                if (i < brightCount) g.setColor(Color.CYAN);
+                else g.setColor(new Color(0, 80, 100));
+                g.fillOval(startX + (i * 18), 8, 14, 14);
+            }
+
+            // ⏳ โชว์ตัวเลข Cooldown ของ P1 (โชว์ตลอดเวลา)
+            double cd1 = p1.getCooldownRemaining();
+            if (cd1 > 0) {
+                g.setColor(Color.YELLOW); // กำลังติดดีเลย์ (สีเหลือง)
+            } else {
+                g.setColor(Color.WHITE);  // พร้อมแล้ว (สีขาว)
+            }
+            g.setFont(new Font("Arial", Font.PLAIN, 12));
+            g.drawString(String.format("%.1fs", cd1), startX + (max * 18) + 5, 20);
         }
 
         // ✨ วาดสถานะของ Player 2 (ขวาบน)
         if (gameManager.getPlayer2() != null) {
+            Player p2 = gameManager.getPlayer2();
             g.setColor(Color.GREEN);
             g.setFont(new Font("Arial", Font.BOLD, 14));
-            Player p2 = gameManager.getPlayer2();
-            g.drawString("P2 BOMB: " + p2.getMaxBombs() + " | FIRE: " + p2.getBombRadius(), getWidth() - 200, 20);
+
+            String fireText = "P2 FIRE: " + p2.getBombRadius();
+            int textX = getWidth() - 100;
+            g.drawString(fireText, textX, 20);
+
+            int max = p2.getMaxBombs();
+            int active = p2.getActiveBombs();
+            int brightCount = max - active;
+
+            if (brightCount > 0 && !p2.canPlaceBomb()) {
+                brightCount--;
+            }
+
+            int startX = textX - (max * 18) - 10;
+            for (int i = 0; i < max; i++) {
+                if (i < brightCount) g.setColor(Color.GREEN);
+                else g.setColor(new Color(0, 80, 0));
+                g.fillOval(startX + (i * 18), 8, 14, 14);
+            }
+
+            // ⏳ โชว์ตัวเลข Cooldown ของ P2 (โชว์ตลอดเวลา)
+            double cd2 = p2.getCooldownRemaining();
+            if (cd2 > 0) {
+                g.setColor(Color.YELLOW); // กำลังติดดีเลย์ (สีเหลือง)
+            } else {
+                g.setColor(Color.WHITE);  // พร้อมแล้ว (สีขาว)
+            }
+            g.setFont(new Font("Arial", Font.PLAIN, 12));
+            g.drawString(String.format("%.1fs", cd2), startX - 35, 20);
         }
     }
 
@@ -130,4 +183,6 @@ public class GamePanel extends JPanel {
             default: return "";
         }
     }
+
+
 }
