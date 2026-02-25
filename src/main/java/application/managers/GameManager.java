@@ -1,6 +1,6 @@
 package application.managers;
 import java.awt.Point;
-import java.util.Collections;
+import java.util.*;
 
 import application.core.Collectible;
 import application.core.Destroyable;
@@ -8,8 +8,6 @@ import application.core.GameObject;
 import application.entities.*;
 
 import java.awt.Color;
-import java.util.ArrayList;
-import java.util.List;
 import java.awt.Graphics;
 import java.awt.event.KeyEvent;
 
@@ -19,7 +17,7 @@ public class GameManager {
     private GameState currentState;
     private int currentMode;
     private List<GameObject> gameObjects;
-    private List<Point> itemLocations = new ArrayList<>(); // ✨ เพิ่มตัวแปรนี้
+    private Map<Point, Item.ItemType> hiddenItems = new HashMap<>();
     private Player player1;
     private Player player2;
     private Door hiddenDoor;
@@ -83,15 +81,21 @@ public class GameManager {
 
         gameObjects.addAll(walls);
 
-        itemLocations.clear();
+        hiddenItems.clear();
         if (breakables.size() > 0) {
-            // ก๊อปปี้รายชื่อกล่องไม้มาสับสลับที่ (Shuffle)
             List<BreakableWall> shuffledBoxes = new ArrayList<>(breakables);
             Collections.shuffle(shuffledBoxes);
 
-            // เลือกกล่อง 5 ใบแรกที่ถูกสับมาเป็นจุดซ่อนไอเทม
-            for (int i = 0; i < 5 && i < shuffledBoxes.size(); i++) {
-                itemLocations.add(new Point(shuffledBoxes.get(i).getX(), shuffledBoxes.get(i).getY()));
+            // ✨ สร้างถุงไอเทม: ดำ 4 ชิ้น, แดง 4 ชิ้น
+            List<Item.ItemType> itemPool = new ArrayList<>();
+            for (int i = 0; i < 4; i++) itemPool.add(Item.ItemType.EXTRA_BOMB);
+            for (int i = 0; i < 4; i++) itemPool.add(Item.ItemType.FIRE_POWER);
+            Collections.shuffle(itemPool); // สับไพ่ไอเทม
+
+            // ซ่อนลงในกล่อง (สูงสุด 8 ใบ)
+            int itemsToHide = Math.min(8, breakables.size());
+            for (int i = 0; i < itemsToHide; i++) {
+                hiddenItems.put(new Point(shuffledBoxes.get(i).getX(), shuffledBoxes.get(i).getY()), itemPool.get(i));
             }
         }
 
@@ -162,13 +166,15 @@ public class GameManager {
 
                 // เช็คว่า Player 1 เดินมาทับไหม
                 if (player1 != null && player1.getX() == gObj.getX() && player1.getY() == gObj.getY()) {
-                    item.onCollect(player1); // สั่งให้ไอเทมทำงาน
-                    itemsToRemove.add(gObj); // ✨ แก้เป็น itemsToRemove แล้ว!
+                    if (item.onCollect(player1)) { // ✨ เช็คว่า return true ไหม
+                        itemsToRemove.add(gObj);   // ถ้า true (ไม่เต็ม) ค่อยลบทิ้ง
+                    }
                 }
                 // เช็คว่า Player 2 เดินมาทับไหม
                 else if (player2 != null && player2.getX() == gObj.getX() && player2.getY() == gObj.getY()) {
-                    item.onCollect(player2);
-                    itemsToRemove.add(gObj); // ✨ แก้เป็น itemsToRemove แล้ว!
+                    if (item.onCollect(player2)) { // ✨ เช็คว่า return true ไหม
+                        itemsToRemove.add(gObj);
+                    }
                 }
             }
         }
@@ -369,20 +375,13 @@ public class GameManager {
 
                     // เช็คพิกัดว่ากล่องใบนี้มีไอเทมซ่อนอยู่ไหม
                     Point p = new Point(obj.getX(), obj.getY());
-                    if (itemLocations.contains(p)) {
-                        // สุ่มประเภทไอเทมที่จะดรอป
-//                        Item.ItemType[] types = Item.ItemType.values();
-//                        Item.ItemType randomType = types[(int)(Math.random() * types.length)];
-                        Item.ItemType randomType;
-                        if (Math.random() < 0.5) {
-                            randomType = Item.ItemType.EXTRA_BOMB; // โอกาส 50% ได้สีดำ
-                        } else {
-                            randomType = Item.ItemType.FIRE_POWER; // โอกาส 50% ได้สีแดง
-                        }
-
-                        newObjects.add(new Item(obj.getX(), obj.getY(), randomType));
-                        itemLocations.remove(p); // เอาพิกัดออกเพื่อไม่ให้ดรอปซ้ำ
+                    if (hiddenItems.containsKey(p)) {
+                        // ✨ ดึงไอเทมที่ซ่อนไว้ออกมาสร้างเลย ไม่ต้องสุ่มแล้ว
+                        Item.ItemType type = hiddenItems.get(p);
+                        newObjects.add(new Item(obj.getX(), obj.getY(), type));
+                        hiddenItems.remove(p);
                     }
+
                 }
             }
         }

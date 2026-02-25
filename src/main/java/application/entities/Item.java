@@ -6,26 +6,34 @@ import java.awt.*;
 
 public class Item extends GameObject implements Collectible{
 
-    @Override
-    public void onCollect(Player player) {
-        // ย้าย logic การให้บัฟจาก GameManager มาไว้ที่นี่แทน
-        switch (this.type) {
-            case EXTRA_BOMB: player.addMaxBombs(); break;
-            case FIRE_POWER: player.addRadius(); break;
-//            case SPEED: player.addSpeed(); break;
-        }
-    }
-
     public enum ItemType { EXTRA_BOMB, FIRE_POWER, SPEED }
     private ItemType type;
+    private long maxPopupTime = 0; // ✨ จับเวลาโชว์ข้อความ MAX
 
     public Item(int x, int y, ItemType type) {
         super(x, y);
         this.type = type;
     }
 
-    public ItemType getType() { return type; }
+    @Override
+    public boolean onCollect(Player player) {
+        boolean isCollected = false;
 
+        switch (this.type) {
+            case EXTRA_BOMB:
+                isCollected = player.addMaxBombs();
+                break;
+            case FIRE_POWER:
+                isCollected = player.addRadius();
+                break;
+        }
+
+        // ✨ ถ้าเก็บไม่สำเร็จ (เต็มแล้ว) ให้เริ่มจับเวลาโชว์คำว่า MAX
+        if (!isCollected) {
+            maxPopupTime = System.currentTimeMillis();
+        }
+        return isCollected;
+    }
     @Override
     public void draw(Graphics g) {
         // เลือกสีตามประเภทไอเทม
@@ -36,9 +44,17 @@ public class Item extends GameObject implements Collectible{
         }
         // ✨ เปลี่ยนจาก x เป็น getX() และจาก y เป็น getY()
         g.fillOval(getX() * 50 + 10, getY() * 50 + 10, 30, 30);
+
+        // ✨ วาดคำว่า MAX ลอยขึ้นมา เป็นเวลา 1 วินาที (1000 ms) หลังจากเดินชน
+        if (System.currentTimeMillis() - maxPopupTime < 1000) {
+            g.setColor(Color.WHITE);
+            g.setFont(new Font("Arial", Font.BOLD, 14));
+            g.drawString("MAX", getX() * 50 + 8, getY() * 50 - 5);
+        }
     }
 
     @Override
     public void update() {}
+    public ItemType getType() { return type; }
 
 }
