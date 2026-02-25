@@ -36,4 +36,34 @@ public class Player extends GameObject implements Destroyable {
         this.isAlive = false;
         System.out.println("Player at " + getX() + "," + getY() + " is dead!");
     }
+
+    private int maxBombs = 1;
+    private int activeBombs = 0;
+    private int bombRadius = 1;
+
+    // เมธอดสำหรับจัดการจำนวนระเบิด
+    public boolean canPlaceBomb() {
+        return activeBombs < maxBombs;
+    }
+
+    public void increaseActiveBombs() {
+        activeBombs++;
+    }
+
+    public void decreaseActiveBombs() {
+        if (activeBombs > 0) activeBombs--;
+    }
+
+    // เมธอดสำหรับไอเทมเรียกใช้
+    public void addMaxBombs() {
+        maxBombs++;
+    }
+
+    public void addRadius() {
+        bombRadius++;
+    }
+
+    public int getBombRadius() {
+        return bombRadius;
+    }
 }

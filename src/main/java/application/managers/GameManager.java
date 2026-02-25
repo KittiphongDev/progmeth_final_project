@@ -2,11 +2,8 @@ package application.managers;
 
 import application.core.Destroyable;
 import application.core.GameObject;
-import application.entities.Bomb;
-import application.entities.BreakableWall;
-import application.entities.Player;
-import application.entities.SolidWall;
-import application.entities.Door;
+import application.entities.*;
+
 import java.awt.Color;
 import java.util.ArrayList;
 import java.util.List;
@@ -105,6 +102,7 @@ public class GameManager {
     public void updateGame() {
         if (currentState != GameState.PLAYING) return;
 
+        // 1. ระบบเวลา
         long currentTime = System.currentTimeMillis();
         if (currentTime - lastTimeCheck >= 1000) {
             gameTimer--;
@@ -115,29 +113,69 @@ public class GameManager {
         List<GameObject> toRemove = new ArrayList<>();
         List<Bomb> readyBombs = new ArrayList<>();
 
+        // 2. อัปเดตวัตถุ และเช็คระเบิด
         for (GameObject obj : gameObjects) {
-            obj.update();
-            if (obj instanceof Bomb && ((Bomb) obj).isReadyToExplode()) {
-                readyBombs.add((Bomb) obj);
-                toRemove.add(obj);
+            obj.update(); // ✨ ต้องมีบรรทัดนี้ เพื่อให้เวลาในระเบิดเดิน!
+
+            if (obj instanceof Bomb) {
+                Bomb b = (Bomb) obj;
+                if (b.isReadyToExplode()) {
+                    readyBombs.add(b);
+                    toRemove.add(b);
+
+                    // คืนโควตาให้เจ้าของ (แบบชั่วคราว: เช็คว่าใครอยู่ใกล้ระเบิดที่สุดตอนนั้น หรือคืนให้ทั้งคู่ถ้าทำระบบง่ายๆ)
+                    // หรือถ้าคุณแก้ Class Bomb ให้เก็บ owner แล้ว ให้ใช้: b.getOwner().decreaseActiveBombs();
+                    player1.decreaseActiveBombs();
+                    if(player2 != null) player2.decreaseActiveBombs();
+                }
             }
         }
 
+        // 3. ทำลายวัตถุจากการระเบิด
         for (Bomb b : readyBombs) triggerExplosion(b.getX(), b.getY(), toRemove);
         gameObjects.removeAll(toRemove);
 
+        // 4. เช็คการเก็บไอเทม (Item Collection)
+        List<GameObject> itemsToRemove = new ArrayList<>();
+        for (GameObject obj : gameObjects) {
+            if (obj instanceof Item) {
+                Item item = (Item) obj;
+                if (player1.getX() == item.getX() && player1.getY() == item.getY()) {
+                    applyItem(player1, item);
+                    itemsToRemove.add(item);
+                } else if (player2 != null && player2.getX() == item.getX() && player2.getY() == item.getY()) {
+                    applyItem(player2, item);
+                    itemsToRemove.add(item);
+                }
+            }
+        }
+        gameObjects.removeAll(itemsToRemove);
+
+        // 5. เช็คสถานะจบเกม
+        checkGameOver();
+    }
+    private void checkGameOver() {
         if (currentMode == 1) {
             if (!player1.isAlive()) currentState = GameState.GAME_OVER;
             else if (hiddenDoor != null && player1.getX() == hiddenDoor.getX() && player1.getY() == hiddenDoor.getY())
                 currentState = GameState.YOU_WIN;
-        } else if (currentMode == 2) {
+        } else if (player2 != null) { // กรณีเล่น 2 คน
             if (!player1.isAlive() && !player2.isAlive()) currentState = GameState.DRAW;
             else if (!player1.isAlive()) currentState = GameState.P2_WIN;
             else if (!player2.isAlive()) currentState = GameState.P1_WIN;
         }
     }
-
     public void handleInput(int keyCode) {
+        // ในส่วน handleInput (หรือ handlePlayerLogic) ของ GameManager
+        if (keyCode == KeyEvent.VK_SPACE) {
+            if (player1.canPlaceBomb()) {
+                // สร้างระเบิดโดยส่งรัศมีของ Player 1 ไปด้วย
+                Bomb newBomb = new Bomb(player1.getX(), player1.getY(), player1.getBombRadius());
+                gameObjects.add(newBomb);
+                player1.increaseActiveBombs(); // นับว่าวางเพิ่ม 1 ลูก
+            }
+        }
+
         if (currentState == GameState.MAIN_MENU) {
             if (keyCode == KeyEvent.VK_1) startGame(1);
             else if (keyCode == KeyEvent.VK_2) startGame(2);
@@ -171,7 +209,7 @@ public class GameManager {
             else if (keyCode == KeyEvent.VK_S) ny++;
             else if (keyCode == KeyEvent.VK_A) nx--;
             else if (keyCode == KeyEvent.VK_D) nx++;
-            else if (keyCode == KeyEvent.VK_SPACE) gameObjects.add(new Bomb(player1.getX(), player1.getY()));
+            else if (keyCode == KeyEvent.VK_SPACE) gameObjects.add(new Bomb(player1.getX(), player1.getY(), player1.getBombRadius()));
             if (isValidMove(nx, ny)) { player1.setX(nx); player1.setY(ny); }
         }
         if (player2 != null && player2.isAlive()) {
@@ -180,7 +218,7 @@ public class GameManager {
             else if (keyCode == KeyEvent.VK_DOWN) ny++;
             else if (keyCode == KeyEvent.VK_LEFT) nx--;
             else if (keyCode == KeyEvent.VK_RIGHT) nx++;
-            else if (keyCode == KeyEvent.VK_ENTER) gameObjects.add(new Bomb(player2.getX(), player2.getY()));
+            else if (keyCode == KeyEvent.VK_ENTER) gameObjects.add(new Bomb(player2.getX(), player2.getY(), player1.getBombRadius()));
             if (isValidMove(nx, ny)) { player2.setX(nx); player2.setY(ny); }
         }
     }
@@ -198,18 +236,34 @@ public class GameManager {
 
     public void triggerExplosion(int cx, int cy, List<GameObject> toRemove) {
         int[][] dirs = {{0,0}, {1,0}, {-1,0}, {0,1}, {0,-1}};
+        List<Item> itemsToAdd = new ArrayList<>(); // ✨ เพิ่มบรรทัดนี้!
+
         for (int[] d : dirs) {
             int tx = cx + d[0], ty = cy + d[1];
             for (GameObject obj : gameObjects) {
                 if (obj.getX() == tx && obj.getY() == ty && obj instanceof Destroyable) {
                     ((Destroyable) obj).onDestroy();
-                    if (obj instanceof BreakableWall) toRemove.add(obj);
+                    if (obj instanceof BreakableWall) {
+                        toRemove.add(obj);
+                        if (Math.random() < 0.3) {
+                            itemsToAdd.add(new Item(obj.getX(), obj.getY(), Item.ItemType.values()[(int)(Math.random()*3)]));
+                        }
+                    }
                 }
             }
         }
+        gameObjects.addAll(itemsToAdd);
     }
 
     public void drawGame(Graphics g) { if (currentState != GameState.MAIN_MENU) for (GameObject obj : gameObjects) obj.draw(g); }
     public GameState getCurrentState() { return currentState; }
     public int getGameTimer() { return gameTimer; }
+
+    private void applyItem(Player p, Item item) {
+        switch (item.getType()) {
+            case EXTRA_BOMB: p.addMaxBombs(); break;
+            case FIRE_POWER: p.addRadius(); break;
+            case SPEED: /* เพิ่มระบบความเร็วที่นี่ */ break;
+        }
+    }
 }

@@ -8,7 +8,7 @@ public class Bomb extends GameObject {
     private long plantTime; // เก็บเวลาตอนที่วางระเบิด
     private final int EXPLOSION_DELAY = 3000; // นับถอยหลัง 3 วินาที (3000 มิลลิวินาที)
 
-    public Bomb(int x, int y) {
+    public Bomb(int x, int y, int bombRadius) {
         super(x, y);
         // จดจำเวลาปัจจุบันทันทีที่ระเบิดถูกสร้างขึ้นมา
         this.plantTime = System.currentTimeMillis();
