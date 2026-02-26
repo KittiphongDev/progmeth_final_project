@@ -207,15 +207,22 @@ public class GameManager {
             return;
         }
 
-        if (keyCode == KeyCode.P) {
+        if (keyCode == KeyCode.ESCAPE) {
             if (currentState == GameState.PLAYING) currentState = GameState.PAUSED;
-            else if (currentState == GameState.PAUSED) {
+//            else if (currentState == GameState.PAUSED) {
+//                currentState = GameState.PLAYING;
+//                lastTimeCheck = System.currentTimeMillis();
+//            }
+            return;
+        }
+
+        if (keyCode == KeyCode.ENTER) {
+            if (currentState == GameState.PAUSED) {
                 currentState = GameState.PLAYING;
                 lastTimeCheck = System.currentTimeMillis();
             }
             return;
         }
-
         if (currentState != GameState.PLAYING) {
             if (keyCode == KeyCode.R) startGame(currentMode);
             else if (keyCode == KeyCode.M) currentState = GameState.MAIN_MENU;

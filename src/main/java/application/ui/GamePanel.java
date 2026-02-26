@@ -80,7 +80,7 @@ public class GamePanel extends Canvas {
         gc.fillText(timeText, getWidth() / 2 - 40, 25);
 
         if (gameManager.getCurrentState() == GameManager.GameState.PAUSED) {
-            drawOverlay(gc, "PAUSED", "Press 'P' to Resume", Color.YELLOW);
+            drawOverlay(gc, "PAUSED", "Press 'Enter' to Resume", Color.YELLOW);
         }
 
         if (isGameOverState()) {
@@ -88,7 +88,7 @@ public class GamePanel extends Canvas {
             drawOverlay(gc, msg, "Press 'R' to Restart | 'M' for Menu", Color.WHITE);
         }
 
-        // ✨ 1. กำหนดสเกลขนาดไอคอนและช่องไฟให้ใหญ่ขึ้นตรงนี้ครับ
+        // ✨ 1. กำหนดสเกลขนาดไอคอนและช่องไฟ
         int ICON_SIZE = 26; // ขยายจาก 14 เป็น 26
         int ICON_GAP = 30;  // ระยะห่างระหว่างไอคอน
         int ICON_Y = 8;     // ตำแหน่งแนวตั้ง
@@ -129,7 +129,7 @@ public class GamePanel extends Canvas {
             int maxBombs = p1.getMaxBombs();
             int activeBombs = p1.getActiveBombs();
 
-            // ✨ 2. แก้ไขให้มืด "เฉพาะจำนวนลูกระเบิดที่วางอยู่บนพื้น (activeBombs)" เท่านั้น
+            // มืดเฉพาะจำนวนลูกระเบิดที่วางอยู่บนพื้น
             int brightCount = maxBombs - activeBombs;
 
             for (int i = 0; i < maxBombs; i++) {
@@ -159,7 +159,7 @@ public class GamePanel extends Canvas {
             gc.fillText(String.format("%.1fs", cd1), bombStartX + (maxBombs * ICON_GAP) + 5, 28);
         }
 
-        // ✨ วาดสถานะของ Player 2 (ขวาบน)
+        // ✨ วาดสถานะของ Player 2 (ขวาบน - Mirror จาก Player 1)
         if (gameManager.getPlayer2() != null) {
             Player p2 = gameManager.getPlayer2();
             gc.setFont(Font.font("Arial", FontWeight.BOLD, 14));
@@ -168,64 +168,72 @@ public class GamePanel extends Canvas {
             int p2MaxFire = p2.getMaxFireRadius();
             int p2MaxBombs = p2.getMaxBombs();
 
+            // กำหนดจุดเริ่มต้นขวาสุด (Mirror จาก P1 ที่เริ่ม x = 15 จากซ้าย)
+            double startX = screenWidth - 15 - ICON_SIZE;
+
+            // --- 🔥 วาดไอคอนระยะไฟ (Player 2) ---
+            // อยู่ขวาสุดของจอ วาดไล่จากขวาไปซ้าย
+            int currentFire = p2.getBombRadius();
+
+            for (int i = 0; i < p2MaxFire; i++) {
+                // ลบค่าแกน X ทำให้วาดไปทางซ้ายเรื่อยๆ และ i=0 (ขวาสุด) จะสว่างก่อน
+                double x = startX - (i * ICON_GAP);
+                if (i < currentFire) {
+                    if (fireIcon != null) {
+                        gc.drawImage(fireIcon, x, ICON_Y, ICON_SIZE, ICON_SIZE);
+                    } else {
+                        gc.setFill(Color.ORANGE);
+                        gc.fillOval(x, ICON_Y, ICON_SIZE, ICON_SIZE);
+                    }
+                } else {
+                    if (fireIcon != null) {
+                        gc.setGlobalAlpha(0.3);
+                        gc.drawImage(fireIcon, x, ICON_Y, ICON_SIZE, ICON_SIZE);
+                        gc.setGlobalAlpha(1.0);
+                    } else {
+                        gc.setFill(Color.rgb(100, 50, 0));
+                        gc.fillOval(x, ICON_Y, ICON_SIZE, ICON_SIZE);
+                    }
+                }
+            }
+
             // --- 💣 วาดไอคอนระเบิด (Player 2) ---
-            double bombStartX = screenWidth - (p2MaxBombs * ICON_GAP) - 50;
+            // ถัดจากไอคอนไฟมาทางซ้าย 20 พิกเซล
+            double bombStartX = startX - (p2MaxFire * ICON_GAP) - 20;
 
             int activeBombs = p2.getActiveBombs();
-
-            // ✨ 2. แก้ไขให้มืดเฉพาะลูกระเบิดที่วางอยู่บนพื้นเท่านั้น
             int brightCount = p2MaxBombs - activeBombs;
 
             for (int i = 0; i < p2MaxBombs; i++) {
+                double x = bombStartX - (i * ICON_GAP);
                 if (i < brightCount) {
                     if (bombIcon != null) {
-                        gc.drawImage(bombIcon, bombStartX + (i * ICON_GAP), ICON_Y, ICON_SIZE, ICON_SIZE);
+                        gc.drawImage(bombIcon, x, ICON_Y, ICON_SIZE, ICON_SIZE);
                     } else {
                         gc.setFill(Color.GREEN);
-                        gc.fillOval(bombStartX + (i * ICON_GAP), ICON_Y, ICON_SIZE, ICON_SIZE);
+                        gc.fillOval(x, ICON_Y, ICON_SIZE, ICON_SIZE);
                     }
                 } else {
                     if (bombIcon != null) {
                         gc.setGlobalAlpha(0.3);
-                        gc.drawImage(bombIcon, bombStartX + (i * ICON_GAP), ICON_Y, ICON_SIZE, ICON_SIZE);
+                        gc.drawImage(bombIcon, x, ICON_Y, ICON_SIZE, ICON_SIZE);
                         gc.setGlobalAlpha(1.0);
                     } else {
                         gc.setFill(Color.rgb(0, 80, 0));
-                        gc.fillOval(bombStartX + (i * ICON_GAP), ICON_Y, ICON_SIZE, ICON_SIZE);
+                        gc.fillOval(x, ICON_Y, ICON_SIZE, ICON_SIZE);
                     }
                 }
             }
 
             // ⏳ โชว์ตัวเลข Cooldown ของ P2
+            // วางตำแหน่งตัวเลขให้อยู่ซ้ายสุดของกลุ่ม (ถัดจากไอคอนระเบิดซ้ายสุด)
             double cd2 = p2.getCooldownRemaining();
             if (cd2 > 0) gc.setFill(Color.YELLOW); else gc.setFill(Color.WHITE);
             gc.setFont(Font.font("Arial", 14));
-            gc.fillText(String.format("%.1fs", cd2), bombStartX - 40, 28);
 
-
-            // --- 🔥 วาดไอคอนระยะไฟ (Player 2) ---
-            double fireStartX = bombStartX - (p2MaxFire * ICON_GAP) - 20;
-            int currentFire = p2.getBombRadius();
-
-            for (int i = 0; i < p2MaxFire; i++) {
-                if (i < currentFire) {
-                    if (fireIcon != null) {
-                        gc.drawImage(fireIcon, fireStartX + (i * ICON_GAP), ICON_Y, ICON_SIZE, ICON_SIZE);
-                    } else {
-                        gc.setFill(Color.ORANGE);
-                        gc.fillOval(fireStartX + (i * ICON_GAP), ICON_Y, ICON_SIZE, ICON_SIZE);
-                    }
-                } else {
-                    if (fireIcon != null) {
-                        gc.setGlobalAlpha(0.3);
-                        gc.drawImage(fireIcon, fireStartX + (i * ICON_GAP), ICON_Y, ICON_SIZE, ICON_SIZE);
-                        gc.setGlobalAlpha(1.0);
-                    } else {
-                        gc.setFill(Color.rgb(100, 50, 0));
-                        gc.fillOval(fireStartX + (i * ICON_GAP), ICON_Y, ICON_SIZE, ICON_SIZE);
-                    }
-                }
-            }
+            // กะระยะ X ให้พอดีกับความกว้างของข้อความ (เลื่อนไปทางซ้ายอีกนิดหน่อย)
+            double textX = bombStartX - (p2MaxBombs * ICON_GAP) - 15;
+            gc.fillText(String.format("%.1fs", cd2), textX, 28);
         }
     }
 
