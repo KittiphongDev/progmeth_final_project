@@ -46,7 +46,7 @@ public class Explosion extends GameObject {
 
         // 3. ✨ คำนวณความโปร่งใส (Fade Out)
         // ให้เริ่มจางลงเรื่อยๆ ตามความคืบหน้า
-        double alpha = 1.0 - (progress * 0.7);
+        double alpha = 1.0 - (progress * 0.3);
         gc.setGlobalAlpha(alpha);
 
         if (explodeImg != null) {

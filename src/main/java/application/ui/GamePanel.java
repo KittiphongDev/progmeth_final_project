@@ -16,9 +16,18 @@ public class GamePanel extends Canvas {
     private final int COLS = 15;
     private final int ROWS = 11;
 
-    // ประกาศตัวแปรเก็บรูปภาพ
+    // ประกาศตัวแปรเก็บรูปภาพไอคอน
     private Image fireIcon;
     private Image bombIcon;
+
+    // ✨ 1. ประกาศตัวแปรเก็บรูปภาพปุ่มเมนู
+    private Image btnSinglePlayer;
+    private Image btnTwoPlayer;
+
+    // ✨ 2. กำหนดขนาดและตำแหน่งของปุ่มเพื่อให้คำนวณการคลิกได้
+    private final double BTN_WIDTH = 240;
+    private final double BTN_HEIGHT = 60;
+    private double btn1X, btn1Y, btn2X, btn2Y;
 
     private GameManager gameManager;
     private AnimationTimer gameLoop;
@@ -26,23 +35,41 @@ public class GamePanel extends Canvas {
     public GamePanel() {
         super(15 * 50, 11 * 50);
 
-        try {
-            fireIcon = new Image(getClass().getResourceAsStream("/fire.png"));
-        } catch (Exception e) {
-            System.out.println("⚠️ Warning: Could not load fire.png");
-        }
-        try {
-            bombIcon = new Image(getClass().getResourceAsStream("/bomb.png"));
-        } catch (Exception e) {
-            System.out.println("⚠️ Warning: Could not load bomb.png");
-        }
+        // โหลดรูปภาพไอเทม
+        try { fireIcon = new Image(getClass().getResourceAsStream("/fire.png")); } catch (Exception e) {}
+        try { bombIcon = new Image(getClass().getResourceAsStream("/bomb.png")); } catch (Exception e) {}
+
+        // ✨ 3. โหลดรูปภาพปุ่ม (ต้องนำไฟล์ single_player.png และ two_player.png ไปใส่ใน resources)
+        try { btnSinglePlayer = new Image(getClass().getResourceAsStream("/single_player.png")); } catch (Exception e) { System.out.println("⚠️ No single_player.png found"); }
+        try { btnTwoPlayer = new Image(getClass().getResourceAsStream("/two_player.png")); } catch (Exception e) { System.out.println("⚠️ No two_player.png found"); }
 
         this.gameManager = new GameManager();
-
         setFocusTraversable(true);
 
+        // ระบบรับอินพุตคีย์บอร์ดเดิม
         setOnKeyPressed(e -> {
             gameManager.handleInput(e.getCode());
+        });
+
+        // ✨ 4. เพิ่มระบบรับอินพุตเมาส์ (Mouse Click)
+        setOnMouseClicked(e -> {
+            requestFocus(); // ให้ Canvas โฟกัสเสมอเมื่อถูกคลิก (เพื่อไม่ให้หลุดการคุมคีย์บอร์ด)
+
+            if (gameManager.getCurrentState() == GameManager.GameState.MAIN_MENU) {
+                double mouseX = e.getX();
+                double mouseY = e.getY();
+
+                // เช็คว่าคลิกโดนปุ่ม Single Player หรือไม่
+                if (mouseX >= btn1X && mouseX <= btn1X + BTN_WIDTH &&
+                        mouseY >= btn1Y && mouseY <= btn1Y + BTN_HEIGHT) {
+                    gameManager.startGame(1);
+                }
+                // เช็คว่าคลิกโดนปุ่ม Two Players หรือไม่
+                else if (mouseX >= btn2X && mouseX <= btn2X + BTN_WIDTH &&
+                        mouseY >= btn2Y && mouseY <= btn2Y + BTN_HEIGHT) {
+                    gameManager.startGame(2);
+                }
+            }
         });
 
         gameLoop = new AnimationTimer() {
@@ -88,78 +115,56 @@ public class GamePanel extends Canvas {
             drawOverlay(gc, msg, "Press 'R' to Restart | 'M' for Menu", Color.WHITE);
         }
 
-        // ✨ 1. กำหนดสเกลขนาดไอคอนและช่องไฟ
-        int ICON_SIZE = 26; // ขยายจาก 14 เป็น 26
-        int ICON_GAP = 30;  // ระยะห่างระหว่างไอคอน
-        int ICON_Y = 8;     // ตำแหน่งแนวตั้ง
+        // --- ส่วนวาด UI พลังของ Player (เหมือนเดิม ไม่ได้แก้ไข) ---
+        int ICON_SIZE = 26;
+        int ICON_GAP = 30;
+        int ICON_Y = 8;
 
-        // ✨ วาดสถานะของ Player 1 (ซ้ายบน)
         if (gameManager.getPlayer1() != null) {
             Player p1 = gameManager.getPlayer1();
             gc.setFont(Font.font("Arial", FontWeight.BOLD, 14));
 
-            // --- 🔥 วาดไอคอนระยะไฟ (Player 1) ---
             int fireStartX = 15;
             int currentFire = p1.getBombRadius();
             int maxFire = p1.getMaxFireRadius();
 
             for (int i = 0; i < maxFire; i++) {
                 if (i < currentFire) {
-                    if (fireIcon != null) {
-                        gc.drawImage(fireIcon, fireStartX + (i * ICON_GAP), ICON_Y, ICON_SIZE, ICON_SIZE);
-                    } else {
-                        gc.setFill(Color.ORANGE);
-                        gc.fillOval(fireStartX + (i * ICON_GAP), ICON_Y, ICON_SIZE, ICON_SIZE);
-                    }
+                    if (fireIcon != null) gc.drawImage(fireIcon, fireStartX + (i * ICON_GAP), ICON_Y, ICON_SIZE, ICON_SIZE);
+                    else { gc.setFill(Color.ORANGE); gc.fillOval(fireStartX + (i * ICON_GAP), ICON_Y, ICON_SIZE, ICON_SIZE); }
                 } else {
                     if (fireIcon != null) {
                         gc.setGlobalAlpha(0.3);
                         gc.drawImage(fireIcon, fireStartX + (i * ICON_GAP), ICON_Y, ICON_SIZE, ICON_SIZE);
                         gc.setGlobalAlpha(1.0);
-                    } else {
-                        gc.setFill(Color.rgb(100, 50, 0));
-                        gc.fillOval(fireStartX + (i * ICON_GAP), ICON_Y, ICON_SIZE, ICON_SIZE);
-                    }
+                    } else { gc.setFill(Color.rgb(100, 50, 0)); gc.fillOval(fireStartX + (i * ICON_GAP), ICON_Y, ICON_SIZE, ICON_SIZE); }
                 }
             }
 
-            // --- 💣 วาดไอคอนระเบิด (Player 1) ---
             int bombStartX = fireStartX + (maxFire * ICON_GAP) + 20;
-
             int maxBombs = p1.getMaxBombs();
             int activeBombs = p1.getActiveBombs();
-
-            // มืดเฉพาะจำนวนลูกระเบิดที่วางอยู่บนพื้น
             int brightCount = maxBombs - activeBombs;
 
             for (int i = 0; i < maxBombs; i++) {
                 if (i < brightCount) {
-                    if (bombIcon != null) {
-                        gc.drawImage(bombIcon, bombStartX + (i * ICON_GAP), ICON_Y, ICON_SIZE, ICON_SIZE);
-                    } else {
-                        gc.setFill(Color.CYAN);
-                        gc.fillOval(bombStartX + (i * ICON_GAP), ICON_Y, ICON_SIZE, ICON_SIZE);
-                    }
+                    if (bombIcon != null) gc.drawImage(bombIcon, bombStartX + (i * ICON_GAP), ICON_Y, ICON_SIZE, ICON_SIZE);
+                    else { gc.setFill(Color.CYAN); gc.fillOval(bombStartX + (i * ICON_GAP), ICON_Y, ICON_SIZE, ICON_SIZE); }
                 } else {
                     if (bombIcon != null) {
                         gc.setGlobalAlpha(0.3);
                         gc.drawImage(bombIcon, bombStartX + (i * ICON_GAP), ICON_Y, ICON_SIZE, ICON_SIZE);
                         gc.setGlobalAlpha(1.0);
-                    } else {
-                        gc.setFill(Color.rgb(0, 80, 100));
-                        gc.fillOval(bombStartX + (i * ICON_GAP), ICON_Y, ICON_SIZE, ICON_SIZE);
-                    }
+                    } else { gc.setFill(Color.rgb(0, 80, 100)); gc.fillOval(bombStartX + (i * ICON_GAP), ICON_Y, ICON_SIZE, ICON_SIZE); }
                 }
             }
 
-            // ⏳ โชว์ตัวเลข Cooldown ของ P1
             double cd1 = p1.getCooldownRemaining();
             if (cd1 > 0) gc.setFill(Color.YELLOW); else gc.setFill(Color.WHITE);
             gc.setFont(Font.font("Arial", 14));
             gc.fillText(String.format("%.1fs", cd1), bombStartX + (maxBombs * ICON_GAP) + 5, 28);
         }
 
-        // ✨ วาดสถานะของ Player 2 (ขวาบน - Mirror จาก Player 1)
         if (gameManager.getPlayer2() != null) {
             Player p2 = gameManager.getPlayer2();
             gc.setFont(Font.font("Arial", FontWeight.BOLD, 14));
@@ -167,87 +172,88 @@ public class GamePanel extends Canvas {
             double screenWidth = getWidth();
             int p2MaxFire = p2.getMaxFireRadius();
             int p2MaxBombs = p2.getMaxBombs();
-
-            // กำหนดจุดเริ่มต้นขวาสุด (Mirror จาก P1 ที่เริ่ม x = 15 จากซ้าย)
             double startX = screenWidth - 15 - ICON_SIZE;
 
-            // --- 🔥 วาดไอคอนระยะไฟ (Player 2) ---
-            // อยู่ขวาสุดของจอ วาดไล่จากขวาไปซ้าย
             int currentFire = p2.getBombRadius();
-
             for (int i = 0; i < p2MaxFire; i++) {
-                // ลบค่าแกน X ทำให้วาดไปทางซ้ายเรื่อยๆ และ i=0 (ขวาสุด) จะสว่างก่อน
                 double x = startX - (i * ICON_GAP);
                 if (i < currentFire) {
-                    if (fireIcon != null) {
-                        gc.drawImage(fireIcon, x, ICON_Y, ICON_SIZE, ICON_SIZE);
-                    } else {
-                        gc.setFill(Color.ORANGE);
-                        gc.fillOval(x, ICON_Y, ICON_SIZE, ICON_SIZE);
-                    }
+                    if (fireIcon != null) gc.drawImage(fireIcon, x, ICON_Y, ICON_SIZE, ICON_SIZE);
+                    else { gc.setFill(Color.ORANGE); gc.fillOval(x, ICON_Y, ICON_SIZE, ICON_SIZE); }
                 } else {
                     if (fireIcon != null) {
                         gc.setGlobalAlpha(0.3);
                         gc.drawImage(fireIcon, x, ICON_Y, ICON_SIZE, ICON_SIZE);
                         gc.setGlobalAlpha(1.0);
-                    } else {
-                        gc.setFill(Color.rgb(100, 50, 0));
-                        gc.fillOval(x, ICON_Y, ICON_SIZE, ICON_SIZE);
-                    }
+                    } else { gc.setFill(Color.rgb(100, 50, 0)); gc.fillOval(x, ICON_Y, ICON_SIZE, ICON_SIZE); }
                 }
             }
 
-            // --- 💣 วาดไอคอนระเบิด (Player 2) ---
-            // ถัดจากไอคอนไฟมาทางซ้าย 20 พิกเซล
             double bombStartX = startX - (p2MaxFire * ICON_GAP) - 20;
-
             int activeBombs = p2.getActiveBombs();
             int brightCount = p2MaxBombs - activeBombs;
 
             for (int i = 0; i < p2MaxBombs; i++) {
                 double x = bombStartX - (i * ICON_GAP);
                 if (i < brightCount) {
-                    if (bombIcon != null) {
-                        gc.drawImage(bombIcon, x, ICON_Y, ICON_SIZE, ICON_SIZE);
-                    } else {
-                        gc.setFill(Color.GREEN);
-                        gc.fillOval(x, ICON_Y, ICON_SIZE, ICON_SIZE);
-                    }
+                    if (bombIcon != null) gc.drawImage(bombIcon, x, ICON_Y, ICON_SIZE, ICON_SIZE);
+                    else { gc.setFill(Color.GREEN); gc.fillOval(x, ICON_Y, ICON_SIZE, ICON_SIZE); }
                 } else {
                     if (bombIcon != null) {
                         gc.setGlobalAlpha(0.3);
                         gc.drawImage(bombIcon, x, ICON_Y, ICON_SIZE, ICON_SIZE);
                         gc.setGlobalAlpha(1.0);
-                    } else {
-                        gc.setFill(Color.rgb(0, 80, 0));
-                        gc.fillOval(x, ICON_Y, ICON_SIZE, ICON_SIZE);
-                    }
+                    } else { gc.setFill(Color.rgb(0, 80, 0)); gc.fillOval(x, ICON_Y, ICON_SIZE, ICON_SIZE); }
                 }
             }
 
-            // ⏳ โชว์ตัวเลข Cooldown ของ P2
-            // วางตำแหน่งตัวเลขให้อยู่ซ้ายสุดของกลุ่ม (ถัดจากไอคอนระเบิดซ้ายสุด)
             double cd2 = p2.getCooldownRemaining();
             if (cd2 > 0) gc.setFill(Color.YELLOW); else gc.setFill(Color.WHITE);
             gc.setFont(Font.font("Arial", 14));
-
-            // กะระยะ X ให้พอดีกับความกว้างของข้อความ (เลื่อนไปทางซ้ายอีกนิดหน่อย)
             double textX = bombStartX - (p2MaxBombs * ICON_GAP) - 15;
             gc.fillText(String.format("%.1fs", cd2), textX, 28);
         }
     }
 
+    // ✨ 5. อัปเดตเมธอดวาดเมนูให้วาดปุ่มแทนตัวหนังสือ
     private void drawMenu(GraphicsContext gc) {
         gc.setTextAlign(TextAlignment.CENTER);
 
+        // วาดชื่อเกม
         gc.setFill(Color.WHITE);
         gc.setFont(Font.font("Arial", FontWeight.BOLD, 70));
-        gc.fillText("BOMB IT!", getWidth() / 2, getHeight() / 2 - 50);
+        gc.fillText("BOMB IT!", getWidth() / 2, getHeight() / 2 - 80);
 
-        gc.setFill(Color.YELLOW);
-        gc.setFont(Font.font("Arial", 25));
-        gc.fillText("Press '1' for Single Player", getWidth() / 2, getHeight() / 2 + 30);
-        gc.fillText("Press '2' for Two Players", getWidth() / 2, getHeight() / 2 + 80);
+        // คำนวณจุดที่จะวาดปุ่ม
+        btn1X = getWidth() / 2 - (BTN_WIDTH / 2);
+        btn1Y = getHeight() / 2 - 10;
+
+        btn2X = getWidth() / 2 - (BTN_WIDTH / 2);
+        btn2Y = getHeight() / 2 + 70;
+
+        // วาดปุ่มที่ 1 (Single Player)
+        if (btnSinglePlayer != null) {
+            gc.drawImage(btnSinglePlayer, btn1X, btn1Y, BTN_WIDTH, BTN_HEIGHT);
+        } else {
+            // Fallback: ถ้ายังไม่มีรูป ให้วาดสี่เหลี่ยมคล้ายๆ ปุ่มแทน
+            gc.setFill(Color.DARKGREEN);
+            gc.fillRoundRect(btn1X, btn1Y, BTN_WIDTH, BTN_HEIGHT, 15, 15);
+            gc.setFill(Color.WHITE);
+            gc.setFont(Font.font("Arial", FontWeight.BOLD, 22));
+            gc.fillText("1 Player", getWidth() / 2, btn1Y + 38);
+        }
+
+        // วาดปุ่มที่ 2 (Two Players)
+        if (btnTwoPlayer != null) {
+            gc.drawImage(btnTwoPlayer, btn2X, btn2Y, BTN_WIDTH, BTN_HEIGHT);
+        } else {
+            // Fallback
+            gc.setFill(Color.DARKRED);
+            gc.fillRoundRect(btn2X, btn2Y, BTN_WIDTH, BTN_HEIGHT, 15, 15);
+            gc.setFill(Color.WHITE);
+            gc.setFont(Font.font("Arial", FontWeight.BOLD, 22));
+            gc.fillText("2 Players", getWidth() / 2, btn2Y + 38);
+        }
 
         gc.setTextAlign(TextAlignment.LEFT);
     }
