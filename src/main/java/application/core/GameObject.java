@@ -1,6 +1,6 @@
 package application.core;
 
-import java.awt.Graphics;
+import javafx.scene.canvas.GraphicsContext; // ✨ เปลี่ยนจาก java.awt.Graphics
 
 public abstract class GameObject {
     private int x;
@@ -18,5 +18,7 @@ public abstract class GameObject {
     public void setY(int y) { this.y = y; }
 
     public abstract void update();
-    public abstract void draw(Graphics g);
+
+    // ✨ เปลี่ยนพารามิเตอร์ที่รับเข้ามาเป็น GraphicsContext ของ JavaFX
+    public abstract void draw(GraphicsContext gc);
 }

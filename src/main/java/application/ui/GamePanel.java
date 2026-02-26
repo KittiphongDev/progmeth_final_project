@@ -2,190 +2,263 @@ package application.ui;
 
 import application.entities.Player;
 import application.managers.GameManager;
-import javax.swing.JPanel;
-import javax.swing.Timer;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Font;
-import java.awt.Graphics;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
+import javafx.animation.AnimationTimer;
+import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.image.Image;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
+import javafx.scene.text.TextAlignment;
 
-public class GamePanel extends JPanel {
+public class GamePanel extends Canvas {
     public static final int TILE_SIZE = 50;
     private final int COLS = 15;
     private final int ROWS = 11;
 
+    // ประกาศตัวแปรเก็บรูปภาพ
+    private Image fireIcon;
+    private Image bombIcon;
+
     private GameManager gameManager;
-    private Timer gameLoop;
+    private AnimationTimer gameLoop;
 
-    // ✨ ปรับตรงนี้ให้ไม่ต้องรับค่าอะไร เพื่อให้ GameWindow.java ไม่ Error
     public GamePanel() {
-        setPreferredSize(new Dimension(COLS * TILE_SIZE, ROWS * TILE_SIZE));
-        setBackground(Color.DARK_GRAY);
+        super(15 * 50, 11 * 50);
 
-        // สร้าง Manager ภายในนี้เลย
+        try {
+            fireIcon = new Image(getClass().getResourceAsStream("/fire.png"));
+        } catch (Exception e) {
+            System.out.println("⚠️ Warning: Could not load fire.png");
+        }
+        try {
+            bombIcon = new Image(getClass().getResourceAsStream("/bomb.png"));
+        } catch (Exception e) {
+            System.out.println("⚠️ Warning: Could not load bomb.png");
+        }
+
         this.gameManager = new GameManager();
 
-        setFocusable(true);
-        requestFocusInWindow();
+        setFocusTraversable(true);
 
-        addKeyListener(new KeyAdapter() {
+        setOnKeyPressed(e -> {
+            gameManager.handleInput(e.getCode());
+        });
+
+        gameLoop = new AnimationTimer() {
+            private long lastUpdate = 0;
             @Override
-            public void keyPressed(KeyEvent e) {
-                gameManager.handleInput(e.getKeyCode());
+            public void handle(long now) {
+                if (now - lastUpdate >= 16_000_000) {
+                    gameManager.updateGame();
+                    draw();
+                    lastUpdate = now;
+                }
             }
-        });
-
-        gameLoop = new Timer(16, e -> {
-            gameManager.updateGame();
-            repaint();
-        });
+        };
         gameLoop.start();
     }
 
-    @Override
-    protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
+    private void draw() {
+        GraphicsContext gc = getGraphicsContext2D();
+
+        gc.setFill(Color.DARKGRAY);
+        gc.fillRect(0, 0, getWidth(), getHeight());
 
         if (gameManager.getCurrentState() == GameManager.GameState.MAIN_MENU) {
-            drawMenu(g);
+            drawMenu(gc);
             return;
         }
 
-        // วาดฉากเกมปกติ
-        gameManager.drawGame(g);
+        gameManager.drawGame(gc);
 
-        // วาดตัวเลขเวลา (ด้านบน)
-        g.setColor(Color.WHITE);
-        g.setFont(new Font("Arial", Font.BOLD, 20));
-        g.drawString("TIME: " + gameManager.getGameTimer(), getWidth() / 2 - 40, 25);
+        gc.setFill(Color.WHITE);
+        gc.setFont(Font.font("Arial", FontWeight.BOLD, 20));
+        gc.setTextAlign(TextAlignment.LEFT);
 
-        // วาดหน้าจอ Pause
+        String timeText = "TIME: " + gameManager.getGameTimer();
+        gc.fillText(timeText, getWidth() / 2 - 40, 25);
+
         if (gameManager.getCurrentState() == GameManager.GameState.PAUSED) {
-            drawOverlay(g, "PAUSED", "Press 'P' to Resume", Color.YELLOW);
+            drawOverlay(gc, "PAUSED", "Press 'P' to Resume", Color.YELLOW);
         }
 
-        // วาดข้อความตอนเกมจบ
         if (isGameOverState()) {
             String msg = getEndGameMessage();
-            drawOverlay(g, msg, "Press 'R' to Restart | 'M' for Menu", Color.WHITE);
+            drawOverlay(gc, msg, "Press 'R' to Restart | 'M' for Menu", Color.WHITE);
         }
 
-        g.setColor(Color.WHITE);
-        g.setFont(new Font("Arial", Font.BOLD, 20));
-        String timeText = "TIME: " + gameManager.getGameTimer();
-        g.drawString(timeText, getWidth() / 2 - 40, 25);
+        // ✨ 1. กำหนดสเกลขนาดไอคอนและช่องไฟให้ใหญ่ขึ้นตรงนี้ครับ
+        int ICON_SIZE = 26; // ขยายจาก 14 เป็น 26
+        int ICON_GAP = 30;  // ระยะห่างระหว่างไอคอน
+        int ICON_Y = 8;     // ตำแหน่งแนวตั้ง
 
         // ✨ วาดสถานะของ Player 1 (ซ้ายบน)
         if (gameManager.getPlayer1() != null) {
             Player p1 = gameManager.getPlayer1();
-            g.setFont(new Font("Arial", Font.BOLD, 14));
+            gc.setFont(Font.font("Arial", FontWeight.BOLD, 14));
 
-            // --- 🔥 วาดไอคอนระยะไฟ (สีส้ม) ---
-            int fireStartX = 10; // เริ่มวาดที่ขอบซ้าย
+            // --- 🔥 วาดไอคอนระยะไฟ (Player 1) ---
+            int fireStartX = 15;
             int currentFire = p1.getBombRadius();
-            int maxFire = p1.getMaxFireRadius(); // ดึงค่า Max ที่เราเพิ่งสร้างมาใช้
+            int maxFire = p1.getMaxFireRadius();
 
             for (int i = 0; i < maxFire; i++) {
                 if (i < currentFire) {
-                    g.setColor(Color.ORANGE); // สว่าง (มีพลัง)
+                    if (fireIcon != null) {
+                        gc.drawImage(fireIcon, fireStartX + (i * ICON_GAP), ICON_Y, ICON_SIZE, ICON_SIZE);
+                    } else {
+                        gc.setFill(Color.ORANGE);
+                        gc.fillOval(fireStartX + (i * ICON_GAP), ICON_Y, ICON_SIZE, ICON_SIZE);
+                    }
                 } else {
-                    g.setColor(new Color(100, 50, 0)); // มืด (ยังไม่ได้เก็บ)
+                    if (fireIcon != null) {
+                        gc.setGlobalAlpha(0.3);
+                        gc.drawImage(fireIcon, fireStartX + (i * ICON_GAP), ICON_Y, ICON_SIZE, ICON_SIZE);
+                        gc.setGlobalAlpha(1.0);
+                    } else {
+                        gc.setFill(Color.rgb(100, 50, 0));
+                        gc.fillOval(fireStartX + (i * ICON_GAP), ICON_Y, ICON_SIZE, ICON_SIZE);
+                    }
                 }
-                g.fillOval(fireStartX + (i * 18), 8, 14, 14);
             }
 
-            // --- 💣 วาดไอคอนระเบิด (สีฟ้า) ---
-            int bombStartX = fireStartX + (maxFire * 18) + 20; // ขยับไปทางขวาต่อจากไอคอนไฟ
-            g.setColor(Color.CYAN);
-            // g.drawString("P1 BOMB:", bombStartX - 70, 20); // (บรรทัดนี้ลบทิ้งได้เลยครับ ไม่ต้องโชว์ข้อความแล้ว)
+            // --- 💣 วาดไอคอนระเบิด (Player 1) ---
+            int bombStartX = fireStartX + (maxFire * ICON_GAP) + 20;
 
             int maxBombs = p1.getMaxBombs();
             int activeBombs = p1.getActiveBombs();
+
+            // ✨ 2. แก้ไขให้มืด "เฉพาะจำนวนลูกระเบิดที่วางอยู่บนพื้น (activeBombs)" เท่านั้น
             int brightCount = maxBombs - activeBombs;
 
-            if (brightCount > 0 && !p1.canPlaceBomb()) {
-                brightCount--;
-            }
-
             for (int i = 0; i < maxBombs; i++) {
-                if (i < brightCount) g.setColor(Color.CYAN);
-                else g.setColor(new Color(0, 80, 100));
-                g.fillOval(bombStartX + (i * 18), 8, 14, 14);
+                if (i < brightCount) {
+                    if (bombIcon != null) {
+                        gc.drawImage(bombIcon, bombStartX + (i * ICON_GAP), ICON_Y, ICON_SIZE, ICON_SIZE);
+                    } else {
+                        gc.setFill(Color.CYAN);
+                        gc.fillOval(bombStartX + (i * ICON_GAP), ICON_Y, ICON_SIZE, ICON_SIZE);
+                    }
+                } else {
+                    if (bombIcon != null) {
+                        gc.setGlobalAlpha(0.3);
+                        gc.drawImage(bombIcon, bombStartX + (i * ICON_GAP), ICON_Y, ICON_SIZE, ICON_SIZE);
+                        gc.setGlobalAlpha(1.0);
+                    } else {
+                        gc.setFill(Color.rgb(0, 80, 100));
+                        gc.fillOval(bombStartX + (i * ICON_GAP), ICON_Y, ICON_SIZE, ICON_SIZE);
+                    }
+                }
             }
 
             // ⏳ โชว์ตัวเลข Cooldown ของ P1
             double cd1 = p1.getCooldownRemaining();
-            if (cd1 > 0) g.setColor(Color.YELLOW); else g.setColor(Color.WHITE);
-            g.setFont(new Font("Arial", Font.PLAIN, 12));
-            g.drawString(String.format("%.1fs", cd1), bombStartX + (maxBombs * 18) + 5, 20);
+            if (cd1 > 0) gc.setFill(Color.YELLOW); else gc.setFill(Color.WHITE);
+            gc.setFont(Font.font("Arial", 14));
+            gc.fillText(String.format("%.1fs", cd1), bombStartX + (maxBombs * ICON_GAP) + 5, 28);
         }
 
         // ✨ วาดสถานะของ Player 2 (ขวาบน)
         if (gameManager.getPlayer2() != null) {
             Player p2 = gameManager.getPlayer2();
-            g.setFont(new Font("Arial", Font.BOLD, 14));
+            gc.setFont(Font.font("Arial", FontWeight.BOLD, 14));
 
-            // คำนวณตำแหน่งเริ่มต้นจากขวาสุดของจอ
-            int screenWidth = getWidth();
+            double screenWidth = getWidth();
             int p2MaxFire = p2.getMaxFireRadius();
             int p2MaxBombs = p2.getMaxBombs();
 
-            // --- 💣 วาดไอคอนระเบิด (สีเขียว) ไว้ขวาสุด ---
-            int bombStartX = screenWidth - (p2MaxBombs * 18) - 40; // เผื่อที่ให้ตัวเลข cooldown นิดหน่อย
+            // --- 💣 วาดไอคอนระเบิด (Player 2) ---
+            double bombStartX = screenWidth - (p2MaxBombs * ICON_GAP) - 50;
 
             int activeBombs = p2.getActiveBombs();
+
+            // ✨ 2. แก้ไขให้มืดเฉพาะลูกระเบิดที่วางอยู่บนพื้นเท่านั้น
             int brightCount = p2MaxBombs - activeBombs;
-            if (brightCount > 0 && !p2.canPlaceBomb()) brightCount--;
 
             for (int i = 0; i < p2MaxBombs; i++) {
-                if (i < brightCount) g.setColor(Color.GREEN);
-                else g.setColor(new Color(0, 80, 0));
-                g.fillOval(bombStartX + (i * 18), 8, 14, 14);
+                if (i < brightCount) {
+                    if (bombIcon != null) {
+                        gc.drawImage(bombIcon, bombStartX + (i * ICON_GAP), ICON_Y, ICON_SIZE, ICON_SIZE);
+                    } else {
+                        gc.setFill(Color.GREEN);
+                        gc.fillOval(bombStartX + (i * ICON_GAP), ICON_Y, ICON_SIZE, ICON_SIZE);
+                    }
+                } else {
+                    if (bombIcon != null) {
+                        gc.setGlobalAlpha(0.3);
+                        gc.drawImage(bombIcon, bombStartX + (i * ICON_GAP), ICON_Y, ICON_SIZE, ICON_SIZE);
+                        gc.setGlobalAlpha(1.0);
+                    } else {
+                        gc.setFill(Color.rgb(0, 80, 0));
+                        gc.fillOval(bombStartX + (i * ICON_GAP), ICON_Y, ICON_SIZE, ICON_SIZE);
+                    }
+                }
             }
 
-            // ⏳ โชว์ตัวเลข Cooldown ของ P2 (อยู่ทางซ้ายของระเบิด)
+            // ⏳ โชว์ตัวเลข Cooldown ของ P2
             double cd2 = p2.getCooldownRemaining();
-            if (cd2 > 0) g.setColor(Color.YELLOW); else g.setColor(Color.WHITE);
-            g.setFont(new Font("Arial", Font.PLAIN, 12));
-            g.drawString(String.format("%.1fs", cd2), bombStartX - 35, 20);
+            if (cd2 > 0) gc.setFill(Color.YELLOW); else gc.setFill(Color.WHITE);
+            gc.setFont(Font.font("Arial", 14));
+            gc.fillText(String.format("%.1fs", cd2), bombStartX - 40, 28);
 
 
-            // --- 🔥 วาดไอคอนระยะไฟ (สีส้ม) ไว้ทางซ้ายของระเบิดอีกที ---
-            int fireStartX = bombStartX - (p2MaxFire * 18) - 20; // เว้นระยะห่างจากกลุ่มระเบิด 20px
+            // --- 🔥 วาดไอคอนระยะไฟ (Player 2) ---
+            double fireStartX = bombStartX - (p2MaxFire * ICON_GAP) - 20;
             int currentFire = p2.getBombRadius();
 
             for (int i = 0; i < p2MaxFire; i++) {
                 if (i < currentFire) {
-                    g.setColor(Color.ORANGE);
+                    if (fireIcon != null) {
+                        gc.drawImage(fireIcon, fireStartX + (i * ICON_GAP), ICON_Y, ICON_SIZE, ICON_SIZE);
+                    } else {
+                        gc.setFill(Color.ORANGE);
+                        gc.fillOval(fireStartX + (i * ICON_GAP), ICON_Y, ICON_SIZE, ICON_SIZE);
+                    }
                 } else {
-                    g.setColor(new Color(100, 50, 0));
+                    if (fireIcon != null) {
+                        gc.setGlobalAlpha(0.3);
+                        gc.drawImage(fireIcon, fireStartX + (i * ICON_GAP), ICON_Y, ICON_SIZE, ICON_SIZE);
+                        gc.setGlobalAlpha(1.0);
+                    } else {
+                        gc.setFill(Color.rgb(100, 50, 0));
+                        gc.fillOval(fireStartX + (i * ICON_GAP), ICON_Y, ICON_SIZE, ICON_SIZE);
+                    }
                 }
-                g.fillOval(fireStartX + (i * 18), 8, 14, 14);
             }
         }
     }
 
-    private void drawMenu(Graphics g) {
-        g.setColor(Color.WHITE);
-        g.setFont(new Font("Arial", Font.BOLD, 70));
-        g.drawString("BOMB IT!", getWidth() / 2 - 160, getHeight() / 2 - 50);
-        g.setColor(Color.YELLOW);
-        g.setFont(new Font("Arial", Font.PLAIN, 25));
-        g.drawString("Press '1' for Single Player", getWidth() / 2 - 140, getHeight() / 2 + 30);
-        g.drawString("Press '2' for Two Players", getWidth() / 2 - 130, getHeight() / 2 + 80);
+    private void drawMenu(GraphicsContext gc) {
+        gc.setTextAlign(TextAlignment.CENTER);
+
+        gc.setFill(Color.WHITE);
+        gc.setFont(Font.font("Arial", FontWeight.BOLD, 70));
+        gc.fillText("BOMB IT!", getWidth() / 2, getHeight() / 2 - 50);
+
+        gc.setFill(Color.YELLOW);
+        gc.setFont(Font.font("Arial", 25));
+        gc.fillText("Press '1' for Single Player", getWidth() / 2, getHeight() / 2 + 30);
+        gc.fillText("Press '2' for Two Players", getWidth() / 2, getHeight() / 2 + 80);
+
+        gc.setTextAlign(TextAlignment.LEFT);
     }
 
-    private void drawOverlay(Graphics g, String title, String sub, Color titleColor) {
-        g.setColor(new Color(0, 0, 0, 150));
-        g.fillRect(0, 0, getWidth(), getHeight());
-        g.setColor(titleColor);
-        g.setFont(new Font("Arial", Font.BOLD, 45));
-        g.drawString(title, getWidth() / 2 - (g.getFontMetrics().stringWidth(title) / 2), getHeight() / 2);
-        g.setColor(Color.WHITE);
-        g.setFont(new Font("Arial", Font.PLAIN, 20));
-        g.drawString(sub, getWidth() / 2 - (g.getFontMetrics().stringWidth(sub) / 2), getHeight() / 2 + 50);
+    private void drawOverlay(GraphicsContext gc, String title, String sub, Color titleColor) {
+        gc.setFill(Color.rgb(0, 0, 0, 0.6));
+        gc.fillRect(0, 0, getWidth(), getHeight());
+
+        gc.setTextAlign(TextAlignment.CENTER);
+
+        gc.setFill(titleColor);
+        gc.setFont(Font.font("Arial", FontWeight.BOLD, 45));
+        gc.fillText(title, getWidth() / 2, getHeight() / 2);
+
+        gc.setFill(Color.WHITE);
+        gc.setFont(Font.font("Arial", 20));
+        gc.fillText(sub, getWidth() / 2, getHeight() / 2 + 50);
+
+        gc.setTextAlign(TextAlignment.LEFT);
     }
 
     private boolean isGameOverState() {
@@ -203,6 +276,4 @@ public class GamePanel extends JPanel {
             default: return "";
         }
     }
-
-
 }

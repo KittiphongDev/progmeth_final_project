@@ -2,15 +2,14 @@ package application.entities;
 
 import application.core.Destroyable;
 import application.core.GameObject;
-import java.awt.Graphics;
-import java.awt.Color;
+import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.paint.Color;
 
 public class Player extends GameObject implements Destroyable {
     private boolean isAlive;
-    private Color playerColor; // ✨ เพิ่มตัวแปรเก็บสีของตัวละคร
-    private static final int MAX_FIRE_RADIUS = 3; // ✨ กำหนดค่าสูงสุดของไฟไว้ที่นี่
+    private Color playerColor; // ✨ เปลี่ยนมาใช้ Color ของ JavaFX
+    private static final int MAX_FIRE_RADIUS = 3;
 
-    // ✨ อัปเดต Constructor ให้รับค่าสีเข้ามาด้วย
     public Player(int x, int y, Color color) {
         super(x, y);
         this.isAlive = true;
@@ -24,12 +23,14 @@ public class Player extends GameObject implements Destroyable {
     @Override
     public void update() {}
 
+    // ✨ เปลี่ยนพารามิเตอร์จาก Graphics เป็น GraphicsContext
     @Override
-    public void draw(Graphics g) {
+    public void draw(GraphicsContext gc) {
         if (!isAlive) return;
-        // ✨ ใช้สีของตัวเองในการวาด
-        g.setColor(playerColor);
-        g.fillRect(getX() * 50, getY() * 50, 50, 50);
+
+        // ✨ ใช้ setFill แทน setColor สำหรับ JavaFX
+        gc.setFill(playerColor);
+        gc.fillRect(getX() * 50, getY() * 50, 50, 50);
     }
 
     @Override
@@ -42,13 +43,11 @@ public class Player extends GameObject implements Destroyable {
     private int activeBombs = 0;
     private int bombRadius = 1;
 
-    private long lastBombTime = 0; // เก็บเวลาตอนที่วางระเบิดล่าสุด
-    private static final long BOMB_COOLDOWN = 500; // ตั้งคูลดาวน์ไว้ 0.5 วินาที (500 มิลลิวินาที เปลี่ยนได้ครับ)
+    private long lastBombTime = 0;
+    private static final long BOMB_COOLDOWN = 500;
 
-    // เมธอดสำหรับจัดการจำนวนระเบิด
     public boolean canPlaceBomb() {
         long currentTime = System.currentTimeMillis();
-        // ✨ เช็ค 2 อย่าง: 1. ระเบิดในฉากยังไม่เกินโควตา 2. เวลาผ่านไปเกินคูลดาวน์แล้ว
         if (activeBombs < maxBombs && (currentTime - lastBombTime >= BOMB_COOLDOWN)) {
             return true;
         }
@@ -57,32 +56,29 @@ public class Player extends GameObject implements Destroyable {
 
     public void increaseActiveBombs() {
         activeBombs++;
-        lastBombTime = System.currentTimeMillis(); // ✨ เริ่มนับคูลดาวน์ใหม่ทันทีที่วางระเบิด
+        lastBombTime = System.currentTimeMillis();
     }
 
     public void decreaseActiveBombs() {
         if (activeBombs > 0) activeBombs--;
     }
 
-    // สมมติโควตาสูงสุดคือ 3 ลูก
     public boolean addMaxBombs() {
         if (maxBombs < 3) {
             maxBombs++;
-            return true;  // อัปเกรดสำเร็จ
+            return true;
         }
-        return false; // เต็มแล้ว
+        return false;
     }
 
-    // กำหนดระยะไฟสูงสุดคือ 3 ช่อง
     public boolean addRadius() {
-        // ✨ เปลี่ยนเลข 3 เป็น MAX_FIRE_RADIUS
         if (bombRadius < MAX_FIRE_RADIUS) {
             bombRadius++;
             return true;
         }
         return false;
     }
-    // ✨ เพิ่มเมธอดนี้ไว้ด้านล่างๆ ครับ
+
     public int getMaxFireRadius() {
         return MAX_FIRE_RADIUS;
     }
@@ -90,18 +86,18 @@ public class Player extends GameObject implements Destroyable {
     public int getBombRadius() {
         return bombRadius;
     }
+
     public int getMaxBombs() {
         return maxBombs;
     }
-    // ✨ เพิ่มเมธอดนี้เพื่อส่งค่าให้ UI เอาไปวาดรูป
+
     public int getActiveBombs() {
         return activeBombs;
     }
 
-    // ✨ เพิ่มเมธอดนี้เข้าไปครับ
     public double getCooldownRemaining() {
         long elapsed = System.currentTimeMillis() - lastBombTime;
         if (elapsed >= BOMB_COOLDOWN) return 0.0;
-        return (BOMB_COOLDOWN - elapsed) / 1000.0; // หาร 1000 เพื่อแปลงเป็นหน่วยวินาที (เช่น 0.5)
+        return (BOMB_COOLDOWN - elapsed) / 1000.0;
     }
 }

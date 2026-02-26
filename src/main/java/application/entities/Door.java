@@ -1,8 +1,8 @@
 package application.entities;
 
 import application.core.GameObject;
-import java.awt.Graphics;
-import java.awt.Color;
+import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.paint.Color;
 
 public class Door extends GameObject {
     public Door(int x, int y) {
@@ -15,9 +15,9 @@ public class Door extends GameObject {
     }
 
     @Override
-    public void draw(Graphics g) {
+    public void draw(GraphicsContext gc) {
         // วาดประตูเป็นสีเหลือง
-        g.setColor(Color.YELLOW);
-        g.fillRect(getX() * 50, getY() * 50, 50, 50);
+        gc.setFill(Color.YELLOW);
+        gc.fillRect(getX() * 50, getY() * 50, 50, 50);
     }
 }
