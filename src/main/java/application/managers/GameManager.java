@@ -17,7 +17,7 @@ public class GameManager {
     private GameState currentState;
     private int currentMode;
     private List<GameObject> gameObjects;
-    private Map<Point2D, Item.ItemType> hiddenItems = new HashMap<>(); // Changed Point to Point2D
+    private Map<Point2D, Item.ItemType> hiddenItems = new HashMap<>();
     private Player player1;
     private Player player2;
     private Door hiddenDoor;
@@ -95,7 +95,7 @@ public class GameManager {
 
             int itemsToHide = Math.min(itemPool.size(), breakables.size());
             for (int i = 0; i < itemsToHide; i++) {
-                hiddenItems.put(new Point2D(shuffledBoxes.get(i).getX(), shuffledBoxes.get(i).getY()), itemPool.get(i)); // Changed Point to Point2D
+                hiddenItems.put(new Point2D(shuffledBoxes.get(i).getX(), shuffledBoxes.get(i).getY()), itemPool.get(i));
             }
         }
 
@@ -199,7 +199,6 @@ public class GameManager {
         }
     }
 
-    // Changed from int keyCode to KeyCode keyCode
     public void handleInput(KeyCode keyCode) {
         if (currentState == GameState.MAIN_MENU) {
             if (keyCode == KeyCode.DIGIT1 || keyCode == KeyCode.NUMPAD1) startGame(1);
@@ -207,45 +206,46 @@ public class GameManager {
             return;
         }
 
+        // ⏸️ ระบบ Pause (กด ESC เพื่อหยุดเกม)
         if (keyCode == KeyCode.ESCAPE) {
             if (currentState == GameState.PLAYING) currentState = GameState.PAUSED;
-//            else if (currentState == GameState.PAUSED) {
-//                currentState = GameState.PLAYING;
-//                lastTimeCheck = System.currentTimeMillis();
-//            }
             return;
         }
 
-        if (keyCode == KeyCode.ENTER) {
-            if (currentState == GameState.PAUSED) {
-                currentState = GameState.PLAYING;
-                lastTimeCheck = System.currentTimeMillis();
-            }
+        // ✨ แก้ไขจุดที่บั๊ก: ตรวจสอบสถานะก่อนใช้ปุ่ม Enter เพื่อ Resume
+        // ถ้ากด Enter ขณะที่หยุดเกม (PAUSED) ให้กลับมาเล่นต่อ
+        if (keyCode == KeyCode.ENTER && currentState == GameState.PAUSED) {
+            currentState = GameState.PLAYING;
+            lastTimeCheck = System.currentTimeMillis();
             return;
         }
+
+        // ถ้าเกมหยุดอยู่ (PAUSED) ไม่ให้กดปุ่มเคลื่อนที่หรือปุ่มอื่นๆ ทำงาน
+        if (currentState == GameState.PAUSED) return;
+
+        // ถ้าจบเกมแล้ว (WIN/LOSE/DRAW)
         if (currentState != GameState.PLAYING) {
             if (keyCode == KeyCode.R) startGame(currentMode);
             else if (keyCode == KeyCode.M) currentState = GameState.MAIN_MENU;
             return;
         }
 
+        // ถ้ากำลังเล่นอยู่ (PLAYING) ให้ส่งค่าไปคำนวณการเคลื่อนที่และวางระเบิด
         handlePlayerLogic(keyCode);
     }
 
-    // Changed from int keyCode to KeyCode keyCode
     private void handlePlayerLogic(KeyCode keyCode) {
+        // Player 1 Logic
         if (player1 != null && player1.isAlive()) {
             int dx = 0, dy = 0;
-
             if (keyCode == KeyCode.W) dy = -1;
             else if (keyCode == KeyCode.S) dy = 1;
             else if (keyCode == KeyCode.A) dx = -1;
             else if (keyCode == KeyCode.D) dx = 1;
-
             else if (keyCode == KeyCode.SPACE) {
                 if (player1.canPlaceBomb()) {
                     Bomb newBomb = new Bomb(player1.getX(), player1.getY(), player1.getBombRadius());
-                    newBomb.setOwner(player1); // Assuming Bomb has a setOwner method
+                    newBomb.setOwner(player1);
                     gameObjects.add(newBomb);
                     player1.increaseActiveBombs();
                 }
@@ -254,7 +254,6 @@ public class GameManager {
             if (dx != 0 || dy != 0) {
                 int targetX = player1.getX() + dx;
                 int targetY = player1.getY() + dy;
-
                 if (isValidMove(targetX, targetY)) {
                     player1.setX(targetX);
                     player1.setY(targetY);
@@ -262,18 +261,19 @@ public class GameManager {
             }
         }
 
+        // Player 2 Logic
         if (player2 != null && player2.isAlive()) {
             int dx = 0, dy = 0;
-
             if (keyCode == KeyCode.UP) dy = -1;
             else if (keyCode == KeyCode.DOWN) dy = 1;
             else if (keyCode == KeyCode.LEFT) dx = -1;
             else if (keyCode == KeyCode.RIGHT) dx = 1;
 
+                // ✨ ตอนนี้ Enter จะทำงานที่นี่แล้วเมื่อเกมอยู่ในสถานะ PLAYING
             else if (keyCode == KeyCode.ENTER) {
                 if (player2.canPlaceBomb()) {
                     Bomb newBomb = new Bomb(player2.getX(), player2.getY(), player2.getBombRadius());
-                    newBomb.setOwner(player2); // Assuming Bomb has a setOwner method
+                    newBomb.setOwner(player2);
                     gameObjects.add(newBomb);
                     player2.increaseActiveBombs();
                 }
@@ -282,7 +282,6 @@ public class GameManager {
             if (dx != 0 || dy != 0) {
                 int targetX = player2.getX() + dx;
                 int targetY = player2.getY() + dy;
-
                 if (isValidMove(targetX, targetY)) {
                     player2.setX(targetX);
                     player2.setY(targetY);
@@ -304,9 +303,7 @@ public class GameManager {
 
     public void triggerExplosion(int centerX, int centerY, int radius, List<GameObject> toRemove) {
         List<GameObject> newObjects = new ArrayList<>();
-
         int[][] directions = {{1,0}, {-1,0}, {0,1}, {0,-1}};
-
         newObjects.add(new Explosion(centerX, centerY));
         destroyAt(centerX, centerY, toRemove, newObjects);
 
@@ -314,24 +311,14 @@ public class GameManager {
             for (int step = 1; step <= radius; step++) {
                 int tx = centerX + (dir[0] * step);
                 int ty = centerY + (dir[1] * step);
-
                 boolean stopped = false;
                 boolean hitBreakable = false;
 
                 for (GameObject obj : gameObjects) {
                     if (obj.getX() == tx && obj.getY() == ty) {
-
-                        if (obj instanceof SolidWall) {
-                            stopped = true;
-                            break;
-                        }
-                        else if (obj instanceof BreakableWall) {
-                            hitBreakable = true;
-                            stopped = true;
-                        }
-                        else if (obj instanceof Player) {
-                            ((Player) obj).onDestroy();
-                        }
+                        if (obj instanceof SolidWall) { stopped = true; break; }
+                        else if (obj instanceof BreakableWall) { hitBreakable = true; stopped = true; }
+                        else if (obj instanceof Player) { ((Player) obj).onDestroy(); }
                     }
                 }
 
@@ -347,7 +334,6 @@ public class GameManager {
                 }
             }
         }
-
         gameObjects.addAll(newObjects);
     }
 
@@ -355,23 +341,19 @@ public class GameManager {
         for (GameObject obj : gameObjects) {
             if (obj.getX() == tx && obj.getY() == ty && obj instanceof Destroyable) {
                 ((Destroyable) obj).onDestroy();
-
                 if (obj instanceof BreakableWall) {
                     toRemove.add(obj);
-
-                    Point2D p = new Point2D(obj.getX(), obj.getY()); // Changed Point to Point2D
+                    Point2D p = new Point2D(obj.getX(), obj.getY());
                     if (hiddenItems.containsKey(p)) {
                         Item.ItemType type = hiddenItems.get(p);
                         newObjects.add(new Item(obj.getX(), obj.getY(), type));
                         hiddenItems.remove(p);
                     }
-
                 }
             }
         }
     }
 
-    // Changed from Graphics g to GraphicsContext gc
     public void drawGame(GraphicsContext gc) {
         if (currentState != GameState.MAIN_MENU) {
             for (GameObject obj : gameObjects) {
@@ -382,7 +364,6 @@ public class GameManager {
 
     public GameState getCurrentState() { return currentState; }
     public int getGameTimer() { return gameTimer; }
-
     public Player getPlayer1() { return player1; }
     public Player getPlayer2() { return player2; }
 }

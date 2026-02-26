@@ -3,6 +3,7 @@ package application.entities;
 import application.core.Collectible;
 import application.core.GameObject;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.image.Image; // ✨ เพิ่ม Import สำหรับ Image
 import javafx.scene.paint.Color;
 import javafx.scene.shape.StrokeLineJoin;
 import javafx.scene.text.Font;
@@ -14,6 +15,28 @@ public class Item extends GameObject implements Collectible {
     public enum ItemType { EXTRA_BOMB, FIRE_POWER, SPEED }
     private ItemType type;
     private long maxPopupTime = 0; // ✨ จับเวลาโชว์ข้อความ MAX
+
+    // ✨ ประกาศตัวแปร Static สำหรับเก็บรูปภาพ (โหลดครั้งเดียวใช้ร่วมกันทุกไอเทม)
+    private static Image firePowerImg;
+    private static Image extraBombImg;
+
+    // ✨ Static Initializer Block: โหลดรูปภาพเมื่อเริ่มโปรแกรม
+    static {
+        try {
+            // พยายามโหลดรูปภาพจาก resources (โฟลเดอร์ที่เก็บ source code หรือ resources)
+            // หมายเหตุ: คุณต้องนำไฟล์ upgrade.png และ upgrade_bomb.png ไปวางใน source folder ของโปรเจกต์
+            firePowerImg = new Image(Item.class.getResourceAsStream("/upgrade_fire.png"));
+        } catch (Exception e) {
+            System.out.println("⚠️ Warning: Could not load /upgrade.png for Item FIRE_POWER. Using fallback shape.");
+        }
+
+        try {
+            extraBombImg = new Image(Item.class.getResourceAsStream("/upgrade_bomb.png"));
+        } catch (Exception e) {
+            System.out.println("⚠️ Warning: Could not load /upgrade_bomb.png for Item EXTRA_BOMB. Using fallback shape.");
+        }
+    }
+
 
     public Item(int x, int y, ItemType type) {
         super(x, y);
@@ -40,24 +63,42 @@ public class Item extends GameObject implements Collectible {
         return isCollected;
     }
 
-    // ✨ เปลี่ยนพารามิเตอร์มารับ GraphicsContext ของ JavaFX
     @Override
     public void draw(GraphicsContext gc) {
-        // เลือกสีตามประเภทไอเทม (ใช้ gc.setFill แทน g.setColor)
+        // ตำแหน่งและขนาดที่จะวาด (จัดกึ่งกลางช่อง 50x50)
+        double drawX = getX() * 50 + 5;  // ขยับนิดหน่อยให้สวยงามตามขนาดรูป
+        double drawY = getY() * 50 + 5;
+        double size = 40; // ปรับขนาดรูปภาพให้เหมาะสม (เดิม 30)
+
+        Image imgToDraw = null;
+        Color fallbackColor = Color.TRANSPARENT;
+
+        // เลือกรูปภาพและสีสำรองตามประเภท
         switch (type) {
-            case EXTRA_BOMB: gc.setFill(Color.BLACK); break;
-            case FIRE_POWER: gc.setFill(Color.RED); break;
-//            case SPEED: gc.setFill(Color.CYAN); break;
+            case EXTRA_BOMB:
+                imgToDraw = extraBombImg;
+                fallbackColor = Color.BLACK;
+                break;
+            case FIRE_POWER:
+                imgToDraw = firePowerImg;
+                fallbackColor = Color.RED;
+                break;
+//            case SPEED: ...
         }
 
-        // ✨ เปลี่ยนจาก x เป็น getX() และจาก y เป็น getY()
-        gc.fillOval(getX() * 50 + 10, getY() * 50 + 10, 30, 30);
+        // ✨ ตรวจสอบว่ามีรูปภาพหรือไม่
+        if (imgToDraw != null) {
+            // ถ้ามีรูป ให้วาดรูป
+            gc.drawImage(imgToDraw, drawX, drawY, size, size);
+        } else {
+            // ถ้าไม่มีรูป (โหลดไม่เจอ) ให้วาดวงกลมสีแบบเดิม (Fallback)
+            gc.setFill(fallbackColor);
+            gc.fillOval(getX() * 50 + 10, getY() * 50 + 10, 30, 30);
+        }
 
-        // ✨ วาดคำว่า MAX แบบมีขอบ (แก้ไขส่วนสีดำล้นและ Error VPos)
+        // === ส่วนวาดคำว่า MAX (เหมือนเดิม) ===
         if (System.currentTimeMillis() - maxPopupTime < 1000) {
             gc.setFont(Font.font("Arial", FontWeight.BOLD, 14));
-
-            // 🎯 แก้ไข Error โดยการใช้ VPos ที่ Import มาแล้ว
             gc.setTextBaseline(VPos.BOTTOM);
 
             String text = "MAX";
@@ -67,9 +108,6 @@ public class Item extends GameObject implements Collectible {
             // 1. วาดเส้นขอบ (Stroke)
             gc.setStroke(Color.BLACK);
             gc.setLineWidth(2.5);
-
-            // ✨ แก้ไข Error โดยการใช้ StrokeLineJoin ที่ Import มาแล้ว
-            // ช่วยให้มุมตัวอักษรไม่แหลมจนล้นออกมาครับ
             gc.setLineJoin(StrokeLineJoin.ROUND);
             gc.strokeText(text, textX, textY);
 
