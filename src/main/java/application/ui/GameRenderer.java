@@ -13,7 +13,7 @@ public class GameRenderer {
     private final GamePanel panel;
     private final GameManager gm;
 
-    private Image fireIcon, bombIcon, btnSinglePlayer, btnTwoPlayer, mapBackground;
+    private Image fireIcon, bombIcon, btnSinglePlayer, btnTwoPlayer, mapBackground,titleText;
 
     private final double BASE_BTN_WIDTH = 320.0;
     private final double HOVER_SCALE = 1.15; // 15% size increase on hover
@@ -40,6 +40,7 @@ public class GameRenderer {
         try { btnSinglePlayer = new Image(getClass().getResourceAsStream("/single_player.png")); } catch (Exception e) {}
         try { btnTwoPlayer = new Image(getClass().getResourceAsStream("/two_player.png")); } catch (Exception e) {}
         try { mapBackground = new Image(getClass().getResourceAsStream("/map_bg.png")); } catch (Exception e) { System.out.println("Error loading background"); }
+        try { titleText = new Image(getClass().getResourceAsStream("/title.png")); } catch (Exception e) { System.out.println("Error loading title"); }
     }
 
     public void updateMousePos(double x, double y) {
@@ -80,10 +81,7 @@ public class GameRenderer {
     }
 
     private void drawMenu(GraphicsContext gc) {
-        gc.setTextAlign(TextAlignment.CENTER);
-        gc.setFill(Color.WHITE);
-        gc.setFont(Font.font("Arial", FontWeight.BOLD, 85));
-        gc.fillText("BOMB IT!", panel.getWidth() / 2, panel.getHeight() / 2 - 130);
+        gc.drawImage(titleText, panel.getWidth() / 2, panel.getHeight() / 2 - 130);
 
         // --- Logic for Button 1 (Single Player) ---
         boolean hover1 = isMouseOver(mouseX, mouseY, btn1X, btn1Y, btn1Width, btn1Height);
