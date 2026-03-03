@@ -41,6 +41,7 @@ public class GameManager {
         this.lastTimeCheck = System.currentTimeMillis();
         gameObjects.clear();
         currentState = GameState.PLAYING;
+        hiddenDoor = null; // Reset door
 
         List<GameObject> walls = new ArrayList<>();
         List<BreakableWall> breakables = new ArrayList<>();
@@ -62,7 +63,6 @@ public class GameManager {
             int ry = (int) (Math.random() * (MAX_ROWS - 2)) + 1;
 
             if (!isSafe(rx, ry, mode) && !isOccupied(walls, rx, ry)) {
-                // Check if placing this wall breaks the map's connectivity
                 if (isMapConnected(walls, rx, ry)) {
                     walls.add(new SolidWall(rx, ry));
                     solidCount++;
@@ -71,15 +71,15 @@ public class GameManager {
             attempts++;
         }
 
-        // Breakable Walls (No connectivity check needed since they can be destroyed)
+        // Breakable Walls
         int breakableCount = 0;
-        while (breakableCount < 50) {
+        while (breakableCount < 5) {
             int rx = (int) (Math.random() * (MAX_COLS - 2)) + 1;
             int ry = (int) (Math.random() * (MAX_ROWS - 2)) + 1;
             if (!isSafe(rx, ry, mode) && !isOccupied(walls, rx, ry)) {
                 BreakableWall bw = new BreakableWall(rx, ry);
                 breakables.add(bw);
-                walls.add(bw); // Breakable walls go into the main walls list for collision
+                walls.add(bw);
                 breakableCount++;
             }
         }
@@ -102,20 +102,16 @@ public class GameManager {
         }
     }
 
-    // --- NEW: Flood Fill Algorithm to guarantee map connectivity ---
     private boolean isMapConnected(List<GameObject> currentWalls, int testX, int testY) {
         boolean[][] solidGrid = new boolean[MAX_COLS][MAX_ROWS];
 
-        // Mark borders and existing SolidWalls
         for (GameObject w : currentWalls) {
             if (w instanceof SolidWall) {
                 solidGrid[w.getX()][w.getY()] = true;
             }
         }
-        // Temporarily mark the new wall we are testing
         solidGrid[testX][testY] = true;
 
-        // Count how many non-solid spaces *should* exist
         int expectedOpen = 0;
         for (int x = 1; x < MAX_COLS - 1; x++) {
             for (int y = 1; y < MAX_ROWS - 1; y++) {
@@ -125,7 +121,6 @@ public class GameManager {
             }
         }
 
-        // Run Breadth-First Search (BFS) starting from Player 1's safe spot (1,1)
         boolean[][] visited = new boolean[MAX_COLS][MAX_ROWS];
         Queue<Point2D> queue = new LinkedList<>();
 
@@ -139,12 +134,10 @@ public class GameManager {
             Point2D p = queue.poll();
             reachableCount++;
 
-            // Check adjacent tiles
             for (int[] d : dirs) {
                 int nx = (int) p.getX() + d[0];
                 int ny = (int) p.getY() + d[1];
 
-                // If within map bounds, is not a solid wall, and hasn't been visited yet
                 if (nx >= 1 && nx < MAX_COLS - 1 && ny >= 1 && ny < MAX_ROWS - 1) {
                     if (!solidGrid[nx][ny] && !visited[nx][ny]) {
                         visited[nx][ny] = true;
@@ -154,7 +147,6 @@ public class GameManager {
             }
         }
 
-        // If the number of reachable spaces matches the expected open spaces, the map is not blocked!
         return reachableCount == expectedOpen;
     }
 
@@ -163,6 +155,12 @@ public class GameManager {
         if (breakables.isEmpty()) return;
 
         List<BreakableWall> shuffledBoxes = new ArrayList<>(breakables);
+
+        // ✨ ลบกล่องที่มีประตูซ่อนอยู่ออกไปจาก List เพื่อป้องกันไม่ให้ไอเทมสุ่มเกิดทับประตู
+        if (hiddenDoor != null) {
+            shuffledBoxes.removeIf(box -> box.getX() == hiddenDoor.getX() && box.getY() == hiddenDoor.getY());
+        }
+
         Collections.shuffle(shuffledBoxes);
         int itemCount = (mode == 1) ? 2 : 4;
         List<Item.ItemType> itemPool = new ArrayList<>();
@@ -170,7 +168,7 @@ public class GameManager {
         for (int i = 0; i < itemCount; i++) itemPool.add(Item.ItemType.FIRE_POWER);
         Collections.shuffle(itemPool);
 
-        for (int i = 0; i < Math.min(itemPool.size(), breakables.size()); i++) {
+        for (int i = 0; i < Math.min(itemPool.size(), shuffledBoxes.size()); i++) {
             hiddenItems.put(new Point2D(shuffledBoxes.get(i).getX(), shuffledBoxes.get(i).getY()), itemPool.get(i));
         }
     }
@@ -221,9 +219,14 @@ public class GameManager {
 
     private void checkGameOver() {
         if (currentMode == 1) {
-            if (!player1.isAlive()) currentState = GameState.GAME_OVER;
-            else if (hiddenDoor != null && player1.getX() == hiddenDoor.getX() && player1.getY() == hiddenDoor.getY())
+            if (!player1.isAlive()) {
+                currentState = GameState.GAME_OVER;
+            }
+            else if (hiddenDoor != null && player1.getX() == hiddenDoor.getX() && player1.getY() == hiddenDoor.getY()) {
+                // ✨ สั่งลบ Player ออกจากจอเพื่อให้ดูเหมือนเดินหายเข้าไปในประตู
+                gameObjects.remove(player1);
                 currentState = GameState.YOU_WIN;
+            }
         } else if (player2 != null) {
             if (!player1.isAlive() && !player2.isAlive()) currentState = GameState.DRAW;
             else if (!player1.isAlive()) currentState = GameState.P2_WIN;
@@ -297,7 +300,6 @@ public class GameManager {
 
     public void drawGame(GraphicsContext gc) {
         if (currentState != GameState.MAIN_MENU) {
-            // Re-applied Y-Sorting to ensure 3D dimensional overlap works correctly
             gameObjects.stream()
                     .sorted((obj1, obj2) -> Double.compare(obj1.getY(), obj2.getY()))
                     .forEach(obj -> obj.draw(gc));
