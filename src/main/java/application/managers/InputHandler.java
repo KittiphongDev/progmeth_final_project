@@ -49,10 +49,42 @@ public class InputHandler {
     private void handlePlayerMovement(KeyCode keyCode) {
         // Player 1
         if (gm.player1 != null && gm.player1.isAlive()) {
+            if (keyCode == KeyCode.W) {
+                gm.player1.setDirection(Player.Direction.BACK); // Facing away
+                // your existing move up logic here (e.g., player1.setY(y - 1))
+            }
+            else if (keyCode == KeyCode.S) {
+                gm.player1.setDirection(Player.Direction.FRONT); // Facing forward
+                // your existing move down logic here
+            }
+            else if (keyCode == KeyCode.A) {
+                gm.player1.setDirection(Player.Direction.LEFT); // Facing left
+                // your existing move left logic here
+            }
+            else if (keyCode == KeyCode.D) {
+                gm.player1.setDirection(Player.Direction.RIGHT); // Facing right
+                // your existing move right logic here
+            }
             processPlayerAction(gm.player1, keyCode, KeyCode.W, KeyCode.S, KeyCode.A, KeyCode.D, KeyCode.SPACE);
         }
         // Player 2
         if (gm.player2 != null && gm.player2.isAlive()) {
+            if (keyCode == KeyCode.UP) {
+                gm.player2.setDirection(Player.Direction.BACK); // Facing away
+                // your existing move up logic here (e.g., player2.setY(y - 1))
+            }
+            else if (keyCode == KeyCode.DOWN) {
+                gm.player2.setDirection(Player.Direction.FRONT); // Facing forward
+                // your existing move down logic here
+            }
+            else if (keyCode == KeyCode.LEFT) {
+                gm.player2.setDirection(Player.Direction.LEFT); // Facing left
+                // your existing move left logic here
+            }
+            else if (keyCode == KeyCode.RIGHT) {
+                gm.player2.setDirection(Player.Direction.RIGHT); // Facing right
+                // your existing move right logic here
+            }
             processPlayerAction(gm.player2, keyCode, KeyCode.UP, KeyCode.DOWN, KeyCode.LEFT, KeyCode.RIGHT, KeyCode.ENTER);
         }
     }

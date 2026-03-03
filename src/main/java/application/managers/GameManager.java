@@ -87,10 +87,10 @@ public class GameManager {
         gameObjects.addAll(walls);
         generateItems(breakables, mode);
 
-        player1 = new Player(1, 1, Color.BLUE);
+        player1 = new Player(1, 1, Color.BLUE,1);
         gameObjects.add(player1);
         if (mode == 2) {
-            player2 = new Player(13, 9, Color.GREEN);
+            player2 = new Player(13, 9, Color.GREEN,2);
             gameObjects.add(player2);
         }
     }
