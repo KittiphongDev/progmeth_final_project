@@ -8,6 +8,7 @@ import javafx.geometry.Point2D;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.input.KeyCode;
 import javafx.scene.paint.Color;
+
 import java.util.*;
 
 public class GameManager {
@@ -53,26 +54,32 @@ public class GameManager {
             }
         }
 
-        // Random Solid Walls
+        // Random Solid Walls (With Connectivity Check)
         int solidCount = 0;
-        while (solidCount < 10) {
+        int attempts = 0; // Prevent infinite loop if map gets too crowded
+        while (solidCount < 30 && attempts < 1000) {
             int rx = (int) (Math.random() * (MAX_COLS - 2)) + 1;
             int ry = (int) (Math.random() * (MAX_ROWS - 2)) + 1;
+
             if (!isSafe(rx, ry, mode) && !isOccupied(walls, rx, ry)) {
-                walls.add(new SolidWall(rx, ry));
-                solidCount++;
+                // Check if placing this wall breaks the map's connectivity
+                if (isMapConnected(walls, rx, ry)) {
+                    walls.add(new SolidWall(rx, ry));
+                    solidCount++;
+                }
             }
+            attempts++;
         }
 
-        // Breakable Walls
+        // Breakable Walls (No connectivity check needed since they can be destroyed)
         int breakableCount = 0;
-        while (breakableCount < 10) {
+        while (breakableCount < 50) {
             int rx = (int) (Math.random() * (MAX_COLS - 2)) + 1;
             int ry = (int) (Math.random() * (MAX_ROWS - 2)) + 1;
             if (!isSafe(rx, ry, mode) && !isOccupied(walls, rx, ry)) {
                 BreakableWall bw = new BreakableWall(rx, ry);
                 breakables.add(bw);
-                walls.add(bw);
+                walls.add(bw); // Breakable walls go into the main walls list for collision
                 breakableCount++;
             }
         }
@@ -87,12 +94,68 @@ public class GameManager {
         gameObjects.addAll(walls);
         generateItems(breakables, mode);
 
-        player1 = new Player(1, 1, Color.BLUE,1);
+        player1 = new Player(1, 1, Color.BLUE, 1);
         gameObjects.add(player1);
         if (mode == 2) {
-            player2 = new Player(13, 9, Color.GREEN,2);
+            player2 = new Player(13, 9, Color.GREEN, 2);
             gameObjects.add(player2);
         }
+    }
+
+    // --- NEW: Flood Fill Algorithm to guarantee map connectivity ---
+    private boolean isMapConnected(List<GameObject> currentWalls, int testX, int testY) {
+        boolean[][] solidGrid = new boolean[MAX_COLS][MAX_ROWS];
+
+        // Mark borders and existing SolidWalls
+        for (GameObject w : currentWalls) {
+            if (w instanceof SolidWall) {
+                solidGrid[w.getX()][w.getY()] = true;
+            }
+        }
+        // Temporarily mark the new wall we are testing
+        solidGrid[testX][testY] = true;
+
+        // Count how many non-solid spaces *should* exist
+        int expectedOpen = 0;
+        for (int x = 1; x < MAX_COLS - 1; x++) {
+            for (int y = 1; y < MAX_ROWS - 1; y++) {
+                if (!solidGrid[x][y]) {
+                    expectedOpen++;
+                }
+            }
+        }
+
+        // Run Breadth-First Search (BFS) starting from Player 1's safe spot (1,1)
+        boolean[][] visited = new boolean[MAX_COLS][MAX_ROWS];
+        Queue<Point2D> queue = new LinkedList<>();
+
+        queue.add(new Point2D(1, 1));
+        visited[1][1] = true;
+
+        int reachableCount = 0;
+        int[][] dirs = {{1,0}, {-1,0}, {0,1}, {0,-1}};
+
+        while (!queue.isEmpty()) {
+            Point2D p = queue.poll();
+            reachableCount++;
+
+            // Check adjacent tiles
+            for (int[] d : dirs) {
+                int nx = (int) p.getX() + d[0];
+                int ny = (int) p.getY() + d[1];
+
+                // If within map bounds, is not a solid wall, and hasn't been visited yet
+                if (nx >= 1 && nx < MAX_COLS - 1 && ny >= 1 && ny < MAX_ROWS - 1) {
+                    if (!solidGrid[nx][ny] && !visited[nx][ny]) {
+                        visited[nx][ny] = true;
+                        queue.add(new Point2D(nx, ny));
+                    }
+                }
+            }
+        }
+
+        // If the number of reachable spaces matches the expected open spaces, the map is not blocked!
+        return reachableCount == expectedOpen;
     }
 
     private void generateItems(List<BreakableWall> breakables, int mode) {
@@ -234,7 +297,10 @@ public class GameManager {
 
     public void drawGame(GraphicsContext gc) {
         if (currentState != GameState.MAIN_MENU) {
-            for (GameObject obj : gameObjects) obj.draw(gc);
+            // Re-applied Y-Sorting to ensure 3D dimensional overlap works correctly
+            gameObjects.stream()
+                    .sorted((obj1, obj2) -> Double.compare(obj1.getY(), obj2.getY()))
+                    .forEach(obj -> obj.draw(gc));
         }
     }
 
