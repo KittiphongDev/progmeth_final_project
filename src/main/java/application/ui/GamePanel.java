@@ -22,6 +22,9 @@ public class GamePanel extends Canvas {
         // Input Handling
         setOnKeyPressed(e -> gameManager.handleInput(e.getCode()));
 
+        // --- NEW: Track mouse movement for hover effects ---
+        setOnMouseMoved(e -> renderer.updateMousePos(e.getX(), e.getY()));
+
         setOnMouseClicked(e -> {
             requestFocus();
             if (gameManager.getCurrentState() == GameManager.GameState.MAIN_MENU) {
