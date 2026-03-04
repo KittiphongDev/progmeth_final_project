@@ -2,6 +2,7 @@ package application.ui;
 
 import application.entities.Player;
 import application.managers.GameManager;
+import application.managers.SoundManager;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
 import javafx.scene.paint.Color;
@@ -13,20 +14,25 @@ public class GameRenderer {
     private final GamePanel panel;
     private final GameManager gm;
 
-    private Image fireIcon, bombIcon, btnSinglePlayer, btnTwoPlayer, mapBackground,titleText;
+    private Image fireIcon, bombIcon, btnSinglePlayer, btnTwoPlayer, mapBackground, titleText;
 
     private final double BASE_BTN_WIDTH = 320.0;
-    private final double HOVER_SCALE = 1.15; // 15% size increase on hover
+    private final double HOVER_SCALE = 1.15;
 
-    // --- NEW: Animation state variables ---
     private double currentW1 = BASE_BTN_WIDTH;
     private double currentW2 = BASE_BTN_WIDTH;
-    private final double ANIMATION_SPEED = 0.15; // Adjust this to make it faster/slower (0.0 to 1.0)
+    private final double ANIMATION_SPEED = 0.15;
 
     private double btn1X, btn1Y, btn1Width, btn1Height;
     private double btn2X, btn2Y, btn2Width, btn2Height;
 
     private double mouseX, mouseY;
+
+    // Track previous hover states to ensure sound only plays on enter
+    private boolean wasHover1 = false;
+    private boolean wasHover2 = false;
+
+    private final SoundManager sm = SoundManager.getInstance();
 
     public GameRenderer(GamePanel panel, GameManager gm) {
         this.panel = panel;
@@ -58,8 +64,13 @@ public class GameRenderer {
 
         if (gm.getCurrentState() == GameManager.GameState.MAIN_MENU) {
             drawMenu(gc);
+            sm.playBGM("bg_menu.mp3"); // The SoundManager fix ensures this only triggers once
             return;
         }
+
+        // Reset hover states when leaving the menu so they trigger correctly when returning
+        wasHover1 = false;
+        wasHover2 = false;
 
         gm.drawGame(gc);
         drawHUD(gc);
@@ -81,37 +92,32 @@ public class GameRenderer {
     }
 
     private void drawMenu(GraphicsContext gc) {
-        // --- UPDATED: Centered and Scalable Title Image ---
         if (titleText != null) {
-            // Set your desired width for the title here
             double titleTargetWidth = 550.0;
-
-            // Calculate proportional height to maintain aspect ratio
             double titleRatio = titleText.getHeight() / titleText.getWidth();
             double titleTargetHeight = titleTargetWidth * titleRatio;
-
-            // Calculate perfectly centered X coordinate
             double titleX = (panel.getWidth() / 2) - (titleTargetWidth / 2);
-
-            // Calculate Y coordinate (adjust the -180 to move it up or down)
             double titleY = (panel.getHeight() / 2) - 400;
 
             gc.drawImage(titleText, titleX, titleY, titleTargetWidth, titleTargetHeight);
         } else {
-            // Fallback text if the image fails to load
             gc.setFill(Color.WHITE);
             gc.setFont(Font.font("Arial", FontWeight.BOLD, 50));
             gc.setTextAlign(TextAlignment.CENTER);
             gc.fillText("GAME TITLE", panel.getWidth() / 2, panel.getHeight() / 2 - 120);
         }
 
-        // --- Logic for Button 1 (Single Player) ---
+        // --- BUTTON 1 LOGIC ---
         boolean hover1 = isMouseOver(mouseX, mouseY, btn1X, btn1Y, btn1Width, btn1Height);
+
+        // Play sound ONLY when transitioning from NOT hovering to hovering
+        if (hover1 && !wasHover1) {
+            sm.playPop();
+        }
+        wasHover1 = hover1; // Update previous state
+
         double targetW1 = hover1 ? BASE_BTN_WIDTH * HOVER_SCALE : BASE_BTN_WIDTH;
-
-        // Smooth interpolation formula
         currentW1 += (targetW1 - currentW1) * ANIMATION_SPEED;
-
         btn1X = panel.getWidth() / 2 - (currentW1 / 2);
         btn1Y = panel.getHeight() / 2 + 25;
 
@@ -119,15 +125,19 @@ public class GameRenderer {
         btn1Width = size1[0];
         btn1Height = size1[1];
 
-        // --- Logic for Button 2 (Two Players) ---
+        // --- BUTTON 2 LOGIC ---
         boolean hover2 = isMouseOver(mouseX, mouseY, btn2X, btn2Y, btn2Width, btn2Height);
+
+        // Play sound ONLY when transitioning from NOT hovering to hovering
+        if (hover2 && !wasHover2) {
+            sm.playPop();
+        }
+        wasHover2 = hover2; // Update previous state
+
         double targetW2 = hover2 ? BASE_BTN_WIDTH * HOVER_SCALE : BASE_BTN_WIDTH;
-
-        // Smooth interpolation formula
         currentW2 += (targetW2 - currentW2) * ANIMATION_SPEED;
-
         btn2X = panel.getWidth() / 2 - (currentW2 / 2);
-        btn2Y = btn1Y + 100; // Dynamic spacing
+        btn2Y = btn1Y + 100;
 
         double[] size2 = drawButton(gc, btnTwoPlayer, btn2X, btn2Y, currentW2, "2 Players", Color.DARKRED);
         btn2Width = size2[0];

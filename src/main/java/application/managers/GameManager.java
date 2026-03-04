@@ -28,6 +28,7 @@ public class GameManager {
     protected long lastTimeCheck;
 
     private final InputHandler inputHandler;
+    private final SoundManager sm = SoundManager.getInstance();
 
     public GameManager() {
         gameObjects = new ArrayList<>();
@@ -41,12 +42,11 @@ public class GameManager {
         this.lastTimeCheck = System.currentTimeMillis();
         gameObjects.clear();
         currentState = GameState.PLAYING;
-        hiddenDoor = null; // Reset door
+        hiddenDoor = null;
 
         List<GameObject> walls = new ArrayList<>();
         List<BreakableWall> breakables = new ArrayList<>();
 
-        // Generate Map Borders
         for (int x = 0; x < MAX_COLS; x++) {
             for (int y = 0; y < MAX_ROWS; y++) {
                 if (x == 0 || x == MAX_COLS - 1 || y == 0 || y == MAX_ROWS - 1) {
@@ -55,13 +55,11 @@ public class GameManager {
             }
         }
 
-        // Random Solid Walls (With Connectivity Check)
         int solidCount = 0;
-        int attempts = 0; // Prevent infinite loop if map gets too crowded
+        int attempts = 0;
         while (solidCount < 30 && attempts < 1000) {
             int rx = (int) (Math.random() * (MAX_COLS - 2)) + 1;
             int ry = (int) (Math.random() * (MAX_ROWS - 2)) + 1;
-
             if (!isSafe(rx, ry, mode) && !isOccupied(walls, rx, ry)) {
                 if (isMapConnected(walls, rx, ry)) {
                     walls.add(new SolidWall(rx, ry));
@@ -71,7 +69,6 @@ public class GameManager {
             attempts++;
         }
 
-        // Breakable Walls
         int breakableCount = 0;
         while (breakableCount < 50) {
             int rx = (int) (Math.random() * (MAX_COLS - 2)) + 1;
@@ -100,44 +97,37 @@ public class GameManager {
             player2 = new Player(13, 9, Color.GREEN, 2);
             gameObjects.add(player2);
         }
+
+        sm.playBGM("bg_in_game.mp3");
     }
 
     private boolean isMapConnected(List<GameObject> currentWalls, int testX, int testY) {
         boolean[][] solidGrid = new boolean[MAX_COLS][MAX_ROWS];
-
         for (GameObject w : currentWalls) {
-            if (w instanceof SolidWall) {
-                solidGrid[w.getX()][w.getY()] = true;
-            }
+            if (w instanceof SolidWall) solidGrid[w.getX()][w.getY()] = true;
         }
         solidGrid[testX][testY] = true;
 
         int expectedOpen = 0;
         for (int x = 1; x < MAX_COLS - 1; x++) {
             for (int y = 1; y < MAX_ROWS - 1; y++) {
-                if (!solidGrid[x][y]) {
-                    expectedOpen++;
-                }
+                if (!solidGrid[x][y]) expectedOpen++;
             }
         }
 
         boolean[][] visited = new boolean[MAX_COLS][MAX_ROWS];
         Queue<Point2D> queue = new LinkedList<>();
-
         queue.add(new Point2D(1, 1));
         visited[1][1] = true;
 
         int reachableCount = 0;
         int[][] dirs = {{1,0}, {-1,0}, {0,1}, {0,-1}};
-
         while (!queue.isEmpty()) {
             Point2D p = queue.poll();
             reachableCount++;
-
             for (int[] d : dirs) {
                 int nx = (int) p.getX() + d[0];
                 int ny = (int) p.getY() + d[1];
-
                 if (nx >= 1 && nx < MAX_COLS - 1 && ny >= 1 && ny < MAX_ROWS - 1) {
                     if (!solidGrid[nx][ny] && !visited[nx][ny]) {
                         visited[nx][ny] = true;
@@ -146,28 +136,22 @@ public class GameManager {
                 }
             }
         }
-
         return reachableCount == expectedOpen;
     }
 
     private void generateItems(List<BreakableWall> breakables, int mode) {
         hiddenItems.clear();
         if (breakables.isEmpty()) return;
-
         List<BreakableWall> shuffledBoxes = new ArrayList<>(breakables);
-
-        // ✨ ลบกล่องที่มีประตูซ่อนอยู่ออกไปจาก List เพื่อป้องกันไม่ให้ไอเทมสุ่มเกิดทับประตู
         if (hiddenDoor != null) {
             shuffledBoxes.removeIf(box -> box.getX() == hiddenDoor.getX() && box.getY() == hiddenDoor.getY());
         }
-
         Collections.shuffle(shuffledBoxes);
         int itemCount = (mode == 1) ? 2 : 4;
         List<Item.ItemType> itemPool = new ArrayList<>();
         for (int i = 0; i < itemCount; i++) itemPool.add(Item.ItemType.EXTRA_BOMB);
         for (int i = 0; i < itemCount; i++) itemPool.add(Item.ItemType.FIRE_POWER);
         Collections.shuffle(itemPool);
-
         for (int i = 0; i < Math.min(itemPool.size(), shuffledBoxes.size()); i++) {
             hiddenItems.put(new Point2D(shuffledBoxes.get(i).getX(), shuffledBoxes.get(i).getY()), itemPool.get(i));
         }
@@ -199,20 +183,24 @@ public class GameManager {
         for (Bomb b : readyBombs) triggerExplosion(b.getX(), b.getY(), b.getRadius(), toRemove);
         gameObjects.removeAll(toRemove);
 
-        // Collect Items
         List<GameObject> itemsToRemove = new ArrayList<>();
         for (GameObject obj : gameObjects) {
             if (obj instanceof Collectible item) {
+                boolean collected = false;
                 if (player1 != null && player1.getX() == obj.getX() && player1.getY() == obj.getY()) {
-                    if (item.onCollect(player1)) itemsToRemove.add(obj);
+                    if (item.onCollect(player1)) collected = true;
                 } else if (player2 != null && player2.getX() == obj.getX() && player2.getY() == obj.getY()) {
-                    if (item.onCollect(player2)) itemsToRemove.add(obj);
+                    if (item.onCollect(player2)) collected = true;
+                }
+
+                if (collected) {
+                    itemsToRemove.add(obj);
+                    sm.playPop();
                 }
             }
         }
         gameObjects.removeAll(itemsToRemove);
 
-        // Remove Finished Explosions
         gameObjects.removeIf(obj -> obj instanceof Explosion ex && ex.isFinished());
         checkGameOver();
     }
@@ -223,14 +211,17 @@ public class GameManager {
                 currentState = GameState.GAME_OVER;
             }
             else if (hiddenDoor != null && player1.getX() == hiddenDoor.getX() && player1.getY() == hiddenDoor.getY()) {
-                // ✨ สั่งลบ Player ออกจากจอเพื่อให้ดูเหมือนเดินหายเข้าไปในประตู
                 gameObjects.remove(player1);
                 currentState = GameState.YOU_WIN;
+                sm.playVictory();
             }
         } else if (player2 != null) {
             if (!player1.isAlive() && !player2.isAlive()) currentState = GameState.DRAW;
             else if (!player1.isAlive()) currentState = GameState.P2_WIN;
-            else if (!player2.isAlive()) currentState = GameState.P1_WIN;
+            else if (!player2.isAlive()) {
+                currentState = GameState.P1_WIN;
+                sm.playVictory();
+            }
         }
     }
 
@@ -306,7 +297,6 @@ public class GameManager {
         }
     }
 
-    // Getters
     public GameState getCurrentState() { return currentState; }
     public void setCurrentState(GameState s) { this.currentState = s; }
     public int getGameTimer() { return gameTimer; }
