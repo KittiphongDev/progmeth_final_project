@@ -73,7 +73,7 @@ public class GameManager {
 
         // Breakable Walls
         int breakableCount = 0;
-        while (breakableCount < 5) {
+        while (breakableCount < 50) {
             int rx = (int) (Math.random() * (MAX_COLS - 2)) + 1;
             int ry = (int) (Math.random() * (MAX_ROWS - 2)) + 1;
             if (!isSafe(rx, ry, mode) && !isOccupied(walls, rx, ry)) {

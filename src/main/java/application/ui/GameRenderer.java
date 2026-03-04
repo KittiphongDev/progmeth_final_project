@@ -81,7 +81,29 @@ public class GameRenderer {
     }
 
     private void drawMenu(GraphicsContext gc) {
-        gc.drawImage(titleText, panel.getWidth() / 2, panel.getHeight() / 2 - 130);
+        // --- UPDATED: Centered and Scalable Title Image ---
+        if (titleText != null) {
+            // Set your desired width for the title here
+            double titleTargetWidth = 550.0;
+
+            // Calculate proportional height to maintain aspect ratio
+            double titleRatio = titleText.getHeight() / titleText.getWidth();
+            double titleTargetHeight = titleTargetWidth * titleRatio;
+
+            // Calculate perfectly centered X coordinate
+            double titleX = (panel.getWidth() / 2) - (titleTargetWidth / 2);
+
+            // Calculate Y coordinate (adjust the -180 to move it up or down)
+            double titleY = (panel.getHeight() / 2) - 250;
+
+            gc.drawImage(titleText, titleX, titleY, titleTargetWidth, titleTargetHeight);
+        } else {
+            // Fallback text if the image fails to load
+            gc.setFill(Color.WHITE);
+            gc.setFont(Font.font("Arial", FontWeight.BOLD, 50));
+            gc.setTextAlign(TextAlignment.CENTER);
+            gc.fillText("GAME TITLE", panel.getWidth() / 2, panel.getHeight() / 2 - 130);
+        }
 
         // --- Logic for Button 1 (Single Player) ---
         boolean hover1 = isMouseOver(mouseX, mouseY, btn1X, btn1Y, btn1Width, btn1Height);
@@ -91,7 +113,7 @@ public class GameRenderer {
         currentW1 += (targetW1 - currentW1) * ANIMATION_SPEED;
 
         btn1X = panel.getWidth() / 2 - (currentW1 / 2);
-        btn1Y = panel.getHeight() / 2 - 30;
+        btn1Y = panel.getHeight() / 2;
 
         double[] size1 = drawButton(gc, btnSinglePlayer, btn1X, btn1Y, currentW1, "1 Player", Color.DARKGREEN);
         btn1Width = size1[0];
@@ -105,7 +127,7 @@ public class GameRenderer {
         currentW2 += (targetW2 - currentW2) * ANIMATION_SPEED;
 
         btn2X = panel.getWidth() / 2 - (currentW2 / 2);
-        btn2Y = btn1Y + btn1Height + 35; // Dynamic spacing
+        btn2Y = btn1Y + 100; // Dynamic spacing
 
         double[] size2 = drawButton(gc, btnTwoPlayer, btn2X, btn2Y, currentW2, "2 Players", Color.DARKRED);
         btn2Width = size2[0];
