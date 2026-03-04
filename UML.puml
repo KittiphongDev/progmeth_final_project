@@ -1,0 +1,288 @@
+@startuml
+interface application.core.Movable {
+~ void move(int,int)
+~ int getSpeed()
+}
+
+class application.entities.Item {
+- ItemType type
+- long maxPopupTime
+- {static} Image firePowerImg
+- {static} Image extraBombImg
++ <<Create>> Item(int,int,ItemType)
++ boolean onCollect(Player)
++ void draw(GraphicsContext)
++ void update()
++ ItemType getType()
+}
+
+
+enum application.entities.ItemType {
++  EXTRA_BOMB
++  FIRE_POWER
++  SPEED
+}
+
+class application.entities.BreakableWall {
+- boolean isDestroyed
+- {static} Image boxIcon
++ <<Create>> BreakableWall(int,int)
++ void update()
++ void draw(GraphicsContext)
++ void onDestroy()
+}
+
+
+class application.Main {
++ {static} void main(String[])
+}
+
+class application.managers.SoundManager {
+- {static} SoundManager instance
+- MediaPlayer bgPlayer
+- String currentBGM
+- AudioClip footstep
+- AudioClip pop
+- AudioClip victory
+- AudioClip fuse
+- AudioClip booom
+- AudioClip count
+- <<Create>> SoundManager()
++ {static} SoundManager getInstance()
+- AudioClip loadSFX(String)
++ void playBGM(String)
++ void playFootstep()
++ void playPop()
++ void playVictory()
++ void playFuse()
++ void playBoom()
++ void playCount()
+}
+
+
+class application.ui.GameRenderer {
+- GamePanel panel
+- GameManager gm
+- Image fireIcon
+- double BASE_BTN_WIDTH
+- double HOVER_SCALE
+- double currentW1
+- double currentW2
+- double ANIMATION_SPEED
+- double btn1X
+- double btn2X
+- double mouseX
+- boolean wasHover1
+- boolean wasHover2
+- int lastPlayedCountTime
+- SoundManager sm
++ <<Create>> GameRenderer(GamePanel,GameManager)
+- void loadAssets()
++ void updateMousePos(double,double)
++ void render(GraphicsContext)
+- void drawHUD(GraphicsContext)
+- void drawMenu(GraphicsContext)
+- double[] drawButton(GraphicsContext,Image,double,double,double,String,Color)
+- boolean isMouseOver(double,double,double,double,double,double)
++ int getMenuClickResult(double,double)
+- void drawPlayerStats(GraphicsContext)
+- void drawStats(GraphicsContext,Player,int,boolean)
+- void drawOverlay(GraphicsContext,String,String,Color)
+- boolean isGameOverState()
+- String getEndGameMessage()
+}
+
+
+class application.ui.GameWindow {
++ void start(Stage)
++ {static} void main(String[])
+}
+
+class application.entities.SolidWall {
+- {static} Image wallImage
+- {static} boolean imageLoaded
++ <<Create>> SolidWall(int,int)
+- void loadImage()
++ void update()
++ void draw(GraphicsContext)
+}
+
+
+class application.managers.InputHandler {
+- GameManager gm
+- SoundManager sm
++ <<Create>> InputHandler(GameManager)
++ void processInput(KeyCode)
+- void handlePlayerMovement(KeyCode)
+- void processPlayerAction(Player,KeyCode,KeyCode,KeyCode,KeyCode,KeyCode,KeyCode)
+- boolean isValidMove(int,int)
+}
+
+
+interface application.core.Destroyable {
+~ void onDestroy()
+}
+
+class application.entities.Explosion {
+- long creationTime
+- {static} int DURATION
+- {static} Image explodeImg
++ <<Create>> Explosion(int,int)
++ boolean isFinished()
++ void draw(GraphicsContext)
++ void update()
+}
+
+
+class application.entities.Bomb {
+- long creationTime
+- int radius
+- Player owner
+- {static} Image bombImg
++ <<Create>> Bomb(int,int,int)
++ int getRadius()
++ Player getOwner()
++ void setOwner(Player)
++ boolean isReadyToExplode()
++ void draw(GraphicsContext)
++ void update()
+}
+
+
+class application.entities.Player {
+- boolean isAlive
+- Color playerColor
+- {static} int MAX_FIRE_RADIUS
+- Direction currentDirection
+- Image idleFront
+- boolean spritesLoaded
+- int playerNumber
+- int maxBombs
+- int activeBombs
+- int bombRadius
+- long lastBombTime
+- {static} long BOMB_COOLDOWN
++ <<Create>> Player(int,int,Color,int)
+- void loadSprites()
++ void setDirection(Direction)
++ boolean isAlive()
++ void update()
++ void draw(GraphicsContext)
++ void onDestroy()
++ boolean canPlaceBomb()
++ void increaseActiveBombs()
++ void decreaseActiveBombs()
++ boolean addMaxBombs()
++ boolean addRadius()
++ int getMaxFireRadius()
++ int getBombRadius()
++ int getMaxBombs()
++ int getActiveBombs()
++ double getCooldownRemaining()
+}
+
+
+enum application.entities.Direction {
++  FRONT
++  BACK
++  LEFT
++  RIGHT
+}
+
+class application.ui.GamePanel {
++ {static} int TILE_SIZE
+- GameManager gameManager
+- GameRenderer renderer
+- AnimationTimer gameLoop
++ <<Create>> GamePanel()
+- void draw()
+}
+
+
+class application.entities.Door {
+- {static} boolean doorLoaded
+- {static} Image doorImage
++ <<Create>> Door(int,int)
+- void loadDoor()
++ void update()
++ void draw(GraphicsContext)
+}
+
+
+class application.managers.GameManager {
+# GameState currentState
+# int currentMode
+# List<GameObject> gameObjects
+# Map<Point2D,Item.ItemType> hiddenItems
+# Player player1
+# Player player2
+# Door hiddenDoor
+# int MAX_COLS
+# int MAX_ROWS
+# int gameTimer
+# long lastTimeCheck
+- InputHandler inputHandler
+- SoundManager sm
++ <<Create>> GameManager()
++ void startGame(int)
+- boolean isMapConnected(List<GameObject>,int,int)
+- void generateItems(List<BreakableWall>,int)
++ void updateGame()
+- void checkGameOver()
++ void triggerExplosion(int,int,int,List<GameObject>)
+- void destroyAt(int,int,List<GameObject>,List<GameObject>)
+- boolean isSafe(int,int,int)
+- boolean isOccupied(List<GameObject>,int,int)
++ void handleInput(KeyCode)
++ void drawGame(GraphicsContext)
++ GameState getCurrentState()
++ void setCurrentState(GameState)
++ int getGameTimer()
++ Player getPlayer1()
++ Player getPlayer2()
+}
+
+
+enum application.managers.GameState {
++  MAIN_MENU
++  PLAYING
++  PAUSED
++  GAME_OVER
++  YOU_WIN
++  P1_WIN
++  P2_WIN
++  DRAW
+}
+
+interface application.core.Collectible {
+~ boolean onCollect(Player)
+}
+
+abstract class application.core.GameObject {
+- int x
+- int y
++ <<Create>> GameObject(int,int)
++ int getX()
++ void setX(int)
++ int getY()
++ void setY(int)
++ {abstract}void update()
++ {abstract}void draw(GraphicsContext)
+}
+
+
+
+
+application.core.Collectible <|.. application.entities.Item
+application.core.GameObject <|-- application.entities.Item
+application.core.Destroyable <|.. application.entities.BreakableWall
+application.core.GameObject <|-- application.entities.BreakableWall
+javafx.application.Application <|-- application.ui.GameWindow
+application.core.GameObject <|-- application.entities.SolidWall
+application.core.GameObject <|-- application.entities.Explosion
+application.core.GameObject <|-- application.entities.Bomb
+application.core.Destroyable <|.. application.entities.Player
+application.core.GameObject <|-- application.entities.Player
+javafx.scene.canvas.Canvas <|-- application.ui.GamePanel
+application.core.GameObject <|-- application.entities.Door
+@enduml
