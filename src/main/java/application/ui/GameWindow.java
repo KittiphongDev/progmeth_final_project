@@ -4,14 +4,24 @@ import application.managers.GameManager;
 import javafx.application.Application;
 import javafx.scene.Group;
 import javafx.scene.Scene;
+import javafx.scene.image.Image; // ✨ เพิ่ม Import สำหรับใช้งานรูปภาพ
 import javafx.stage.Stage;
 
 public class GameWindow extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        primaryStage.setTitle("Slime Wars");
+        primaryStage.setTitle("Slime Warz");
         primaryStage.setResizable(false);
+
+        // --- NEW: โค้ดสำหรับเซ็ต Game Logo (Icon) ---
+        try {
+            // สมมติว่าไฟล์รูปภาพโลโก้ชื่อ "logo.png" และอยู่ในโฟลเดอร์ src/main/resources
+            Image gameLogo = new Image(getClass().getResourceAsStream("/logo.png"));
+            primaryStage.getIcons().add(gameLogo);
+        } catch (Exception e) {
+            System.out.println("⚠️ Warning: ไม่สามารถโหลดรูปภาพโลโก้ได้ กรุณาตรวจสอบว่ามีไฟล์ '/logo.png' ในโฟลเดอร์ resources หรือไม่");
+        }
 
         GamePanel gameCanvas = new GamePanel();
         Group root = new Group(gameCanvas);
