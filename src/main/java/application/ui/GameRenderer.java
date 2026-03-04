@@ -94,7 +94,7 @@ public class GameRenderer {
             double titleX = (panel.getWidth() / 2) - (titleTargetWidth / 2);
 
             // Calculate Y coordinate (adjust the -180 to move it up or down)
-            double titleY = (panel.getHeight() / 2) - 250;
+            double titleY = (panel.getHeight() / 2) - 400;
 
             gc.drawImage(titleText, titleX, titleY, titleTargetWidth, titleTargetHeight);
         } else {
@@ -102,7 +102,7 @@ public class GameRenderer {
             gc.setFill(Color.WHITE);
             gc.setFont(Font.font("Arial", FontWeight.BOLD, 50));
             gc.setTextAlign(TextAlignment.CENTER);
-            gc.fillText("GAME TITLE", panel.getWidth() / 2, panel.getHeight() / 2 - 130);
+            gc.fillText("GAME TITLE", panel.getWidth() / 2, panel.getHeight() / 2 - 120);
         }
 
         // --- Logic for Button 1 (Single Player) ---
@@ -113,7 +113,7 @@ public class GameRenderer {
         currentW1 += (targetW1 - currentW1) * ANIMATION_SPEED;
 
         btn1X = panel.getWidth() / 2 - (currentW1 / 2);
-        btn1Y = panel.getHeight() / 2;
+        btn1Y = panel.getHeight() / 2 + 25;
 
         double[] size1 = drawButton(gc, btnSinglePlayer, btn1X, btn1Y, currentW1, "1 Player", Color.DARKGREEN);
         btn1Width = size1[0];
