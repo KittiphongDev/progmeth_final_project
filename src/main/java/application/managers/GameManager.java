@@ -38,7 +38,7 @@ public class GameManager {
 
     public void startGame(int mode) {
         this.currentMode = mode;
-        this.gameTimer = 15;
+        this.gameTimer = 90;
         this.lastTimeCheck = System.currentTimeMillis();
         gameObjects.clear();
         currentState = GameState.PLAYING;
