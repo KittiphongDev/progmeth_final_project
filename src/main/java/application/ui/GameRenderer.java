@@ -10,6 +10,8 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.TextAlignment;
 
+import static java.lang.Thread.sleep;
+
 public class GameRenderer {
     private final GamePanel panel;
     private final GameManager gm;
@@ -31,6 +33,9 @@ public class GameRenderer {
     // Track previous hover states to ensure sound only plays on enter
     private boolean wasHover1 = false;
     private boolean wasHover2 = false;
+
+    // Tracks the last second we played the countdown to prevent 60FPS spam
+    private int lastPlayedCountTime = -1;
 
     private final SoundManager sm = SoundManager.getInstance();
 
@@ -85,10 +90,35 @@ public class GameRenderer {
     }
 
     private void drawHUD(GraphicsContext gc) {
-        gc.setFill(Color.WHITE);
         gc.setFont(Font.font("Arial", FontWeight.BOLD, 20));
         gc.setTextAlign(TextAlignment.LEFT);
-        gc.fillText("TIME: " + gm.getGameTimer(), panel.getWidth() / 2 - 40, 25);
+
+        int currentTimer = gm.getGameTimer();
+        String timeText = "TIME: " + currentTimer;
+
+        // Play the count sound exactly once per second when at or below 10
+        if (currentTimer <= 10 && currentTimer > 0 && currentTimer != lastPlayedCountTime) {
+            sm.playCount();
+            lastPlayedCountTime = currentTimer; // Update tracker so it doesn't play again until the next second
+        }
+
+        double xPos = panel.getWidth() / 2 - 40;
+        double yPos = 25;
+
+        // Draw the stroke (outline) first
+        gc.setStroke(Color.BLACK);
+        gc.setLineWidth(3);
+        gc.strokeText(timeText, xPos, yPos);
+
+        // Draw the fill (inner text) over it
+        // Switch to red text for the final 10 seconds
+        if (currentTimer <= 10 && currentTimer > 0) {
+            gc.setFill(Color.RED);
+        } else {
+            gc.setFill(Color.WHITE);
+        }
+
+        gc.fillText(timeText, xPos, yPos);
     }
 
     private void drawMenu(GraphicsContext gc) {
@@ -202,8 +232,13 @@ public class GameRenderer {
         gc.setFill(titleColor);
         gc.setFont(Font.font("Arial", FontWeight.BOLD, 45));
         gc.fillText(title, panel.getWidth() / 2, panel.getHeight() / 2);
-        gc.setFill(Color.WHITE);
+
+        // Added a stroke here too to ensure the subtitle is clearly readable
+        gc.setStroke(Color.BLACK);
+        gc.setLineWidth(1.0);
         gc.setFont(Font.font("Arial", 20));
+        gc.strokeText(sub, panel.getWidth() / 2, panel.getHeight() / 2 + 50);
+        gc.setFill(Color.WHITE);
         gc.fillText(sub, panel.getWidth() / 2, panel.getHeight() / 2 + 50);
     }
 

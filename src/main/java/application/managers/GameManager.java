@@ -38,7 +38,7 @@ public class GameManager {
 
     public void startGame(int mode) {
         this.currentMode = mode;
-        this.gameTimer = 90;
+        this.gameTimer = 15;
         this.lastTimeCheck = System.currentTimeMillis();
         gameObjects.clear();
         currentState = GameState.PLAYING;
@@ -165,7 +165,7 @@ public class GameManager {
             gameTimer--;
             lastTimeCheck = currentTime;
         }
-        if (gameTimer <= 0) { gameTimer = 0; currentState = GameState.DRAW; }
+        if (gameTimer <= 0) { gameTimer = 0; currentState = GameState.DRAW; sm.playVictory();}
 
         List<GameObject> toRemove = new ArrayList<>();
         List<Bomb> readyBombs = new ArrayList<>();
@@ -209,6 +209,7 @@ public class GameManager {
         if (currentMode == 1) {
             if (!player1.isAlive()) {
                 currentState = GameState.GAME_OVER;
+                sm.playVictory();
             }
             else if (hiddenDoor != null && player1.getX() == hiddenDoor.getX() && player1.getY() == hiddenDoor.getY()) {
                 gameObjects.remove(player1);
@@ -216,8 +217,14 @@ public class GameManager {
                 sm.playVictory();
             }
         } else if (player2 != null) {
-            if (!player1.isAlive() && !player2.isAlive()) currentState = GameState.DRAW;
-            else if (!player1.isAlive()) currentState = GameState.P2_WIN;
+            if (!player1.isAlive() && !player2.isAlive()) {
+                currentState = GameState.DRAW;
+                sm.playVictory();
+            }
+            else if (!player1.isAlive()){
+                currentState = GameState.P2_WIN;
+                sm.playVictory();
+            }
             else if (!player2.isAlive()) {
                 currentState = GameState.P1_WIN;
                 sm.playVictory();
@@ -226,6 +233,8 @@ public class GameManager {
     }
 
     public void triggerExplosion(int centerX, int centerY, int radius, List<GameObject> toRemove) {
+        sm.playBoom(); // Trigger the explosion sound exactly when the blast generates
+
         List<GameObject> newObjects = new ArrayList<>();
         int[][] directions = {{1,0}, {-1,0}, {0,1}, {0,-1}};
         newObjects.add(new Explosion(centerX, centerY));

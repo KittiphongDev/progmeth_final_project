@@ -101,7 +101,7 @@ public class InputHandler {
                 newBomb.setOwner(p);
                 gm.gameObjects.add(newBomb);
                 p.increaseActiveBombs();
-                sm.playPop();
+                sm.playFuse(); // Trigger the fuse sound upon bomb placement
             }
         }
 
