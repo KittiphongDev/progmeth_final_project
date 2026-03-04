@@ -102,6 +102,11 @@ public class GameRenderer {
             lastPlayedCountTime = currentTimer; // Update tracker so it doesn't play again until the next second
         }
 
+        if (currentTimer <= 0)
+        {
+            timeText = "TIME OUT!";
+        }
+
         double xPos = panel.getWidth() / 2 - 40;
         double yPos = 25;
 
