@@ -8,6 +8,8 @@ import javafx.geometry.Point2D;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.input.KeyCode;
 import javafx.scene.paint.Color;
+import javafx.animation.PauseTransition;
+import javafx.util.Duration;
 
 import java.util.*;
 
@@ -222,9 +224,14 @@ public class GameManager {
                 sm.playVictory();
             }
             else if (hiddenDoor != null && player1.getX() == hiddenDoor.getX() && player1.getY() == hiddenDoor.getY()) {
-                gameObjects.remove(player1);
                 currentState = GameState.YOU_WIN;
                 sm.playVictory();
+
+                PauseTransition pause = new PauseTransition(Duration.seconds(1));
+                pause.setOnFinished(event -> {
+                    gameObjects.remove(player1);
+                });
+                pause.play();
             }
         } else if (player2 != null) {
             if (!player1.isAlive() && !player2.isAlive()) {
