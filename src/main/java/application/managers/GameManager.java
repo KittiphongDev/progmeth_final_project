@@ -165,7 +165,17 @@ public class GameManager {
             gameTimer--;
             lastTimeCheck = currentTime;
         }
-        if (gameTimer <= 0) { gameTimer = 0; currentState = GameState.DRAW; sm.playVictory();}
+        if (gameTimer <=  0 && currentMode == 1) {
+            gameTimer = 0;
+            currentState = GameState.GAME_OVER;
+            sm.playVictory();
+        }
+        else if (gameTimer <=  0 && currentMode == 2)
+        {
+            gameTimer = 0;
+            currentState = GameState.DRAW;
+            sm.playVictory();
+        }
 
         List<GameObject> toRemove = new ArrayList<>();
         List<Bomb> readyBombs = new ArrayList<>();
