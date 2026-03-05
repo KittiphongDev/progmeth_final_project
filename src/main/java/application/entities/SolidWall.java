@@ -35,7 +35,7 @@ public class SolidWall extends GameObject {
     }
 
     @Override
-    public void update() {
+    public void update(long deltaTime) {
         // กำแพงอยู่นิ่งๆ ไม่ต้องทำอะไร
     }
 

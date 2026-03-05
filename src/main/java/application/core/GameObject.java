@@ -17,8 +17,10 @@ public abstract class GameObject {
     public int getY() { return y; }
     public void setY(int y) { this.y = y; }
 
-    public abstract void update();
+//    public abstract void update();
 
     // ✨ เปลี่ยนพารามิเตอร์ที่รับเข้ามาเป็น GraphicsContext ของ JavaFX
     public abstract void draw(GraphicsContext gc);
+
+    public abstract void update(long deltaTime);
 }

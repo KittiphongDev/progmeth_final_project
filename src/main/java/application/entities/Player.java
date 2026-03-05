@@ -60,7 +60,8 @@ public class Player extends GameObject implements Destroyable {
     }
 
     @Override
-    public void update() {}
+    public void update(long deltaTime) {}
+
 
     @Override
     public void draw(GraphicsContext gc) {

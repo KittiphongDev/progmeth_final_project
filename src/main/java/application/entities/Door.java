@@ -34,9 +34,7 @@ public class Door extends GameObject {
     }
 
     @Override
-    public void update() {
-        // ประตูอยู่นิ่งๆ
-    }
+    public void update(long deltaTime) {} // ประตูอยู่นิ่งๆ
 
     @Override
     public void draw(GraphicsContext gc) {

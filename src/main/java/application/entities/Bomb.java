@@ -10,6 +10,9 @@ public class Bomb extends GameObject {
     private int radius;
     private Player owner;
 
+    private long elapsedTime = 0;
+    private static final long EXPLODE_DELAY = 2000;
+
     // ✨ 1. โหลดรูปภาพแบบ Static (โหลดครั้งเดียวใช้ทั้งเกม)
     private static Image bombImg;
 
@@ -33,7 +36,8 @@ public class Bomb extends GameObject {
     public void setOwner(Player owner) { this.owner = owner; }
 
     public boolean isReadyToExplode() {
-        return System.currentTimeMillis() - creationTime >= 2000; // ระเบิดใน 2 วินาที
+        return elapsedTime >= EXPLODE_DELAY;
+//        return System.currentTimeMillis() - creationTime >= 2000; // ระเบิดใน 2 วินาที
     }
 
     @Override
@@ -64,8 +68,10 @@ public class Bomb extends GameObject {
         }
     }
 
+
+
     @Override
-    public void update() {
-        // สามารถใส่ Logic เพิ่มเติมที่นี่ได้ถ้าต้องการ
+    public void update(long deltaTime) {
+        elapsedTime += deltaTime;
     }
 }

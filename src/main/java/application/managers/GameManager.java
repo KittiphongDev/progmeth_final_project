@@ -32,6 +32,9 @@ public class GameManager {
     private final InputHandler inputHandler;
     private final SoundManager sm = SoundManager.getInstance();
 
+    private long lastFrameTime;
+    private long deltaTime;
+
     public GameManager() {
         gameObjects = new ArrayList<>();
         currentState = GameState.MAIN_MENU;
@@ -45,6 +48,7 @@ public class GameManager {
         gameObjects.clear();
         currentState = GameState.PLAYING;
         hiddenDoor = null;
+        lastFrameTime = System.currentTimeMillis();
 
         List<GameObject> walls = new ArrayList<>();
         List<BreakableWall> breakables = new ArrayList<>();
@@ -160,7 +164,14 @@ public class GameManager {
     }
 
     public void updateGame() {
-        if (currentState != GameState.PLAYING) return;
+        if (currentState != GameState.PLAYING) {
+            lastFrameTime = System.currentTimeMillis();
+            return;
+        }
+
+        long now = System.currentTimeMillis();
+        deltaTime = now - lastFrameTime;
+        lastFrameTime = now;
 
         long currentTime = System.currentTimeMillis();
         if (currentTime - lastTimeCheck >= 1000) {
@@ -183,7 +194,7 @@ public class GameManager {
         List<Bomb> readyBombs = new ArrayList<>();
 
         for (GameObject obj : gameObjects) {
-            obj.update();
+            obj.update(deltaTime);
             if (obj instanceof Bomb b && b.isReadyToExplode()) {
                 readyBombs.add(b);
                 toRemove.add(b);

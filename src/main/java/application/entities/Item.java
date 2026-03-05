@@ -121,7 +121,7 @@ public class Item extends GameObject implements Collectible {
     }
 
     @Override
-    public void update() {}
+    public void update(long deltaTime) {}
 
     public ItemType getType() { return type; }
 }

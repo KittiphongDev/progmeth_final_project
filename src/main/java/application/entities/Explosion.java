@@ -68,5 +68,5 @@ public class Explosion extends GameObject {
     }
 
     @Override
-    public void update() {}
+    public void update(long deltaTime) {}
 }
