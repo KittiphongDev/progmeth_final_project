@@ -16,23 +16,26 @@ public class GameRenderer {
     private final GamePanel panel;
     private final GameManager gm;
 
-    private Image fireIcon, bombIcon, btnSinglePlayer, btnTwoPlayer, mapBackground, titleText;
+    private Image fireIcon, bombIcon, btnSinglePlayer, btnTwoPlayer, btnHowToPlay, mapBackground, titleText;
 
     private final double BASE_BTN_WIDTH = 320.0;
     private final double HOVER_SCALE = 1.15;
 
     private double currentW1 = BASE_BTN_WIDTH;
     private double currentW2 = BASE_BTN_WIDTH;
+    private double currentW3 = BASE_BTN_WIDTH;
     private final double ANIMATION_SPEED = 0.15;
 
     private double btn1X, btn1Y, btn1Width, btn1Height;
     private double btn2X, btn2Y, btn2Width, btn2Height;
+    private double btn3X, btn3Y, btn3Width, btn3Height;
 
     private double mouseX, mouseY;
 
     // Track previous hover states to ensure sound only plays on enter
     private boolean wasHover1 = false;
     private boolean wasHover2 = false;
+    private boolean wasHover3 = false;
 
     // Tracks the last second we played the countdown to prevent 60FPS spam
     private int lastPlayedCountTime = -1;
@@ -52,6 +55,7 @@ public class GameRenderer {
         try { btnTwoPlayer = new Image(getClass().getResourceAsStream("/two_player.png")); } catch (Exception e) {}
         try { mapBackground = new Image(getClass().getResourceAsStream("/map_bg.png")); } catch (Exception e) { System.out.println("Error loading background"); }
         try { titleText = new Image(getClass().getResourceAsStream("/title.png")); } catch (Exception e) { System.out.println("Error loading title"); }
+        try { btnHowToPlay = new Image(getClass().getResourceAsStream("/how_to_play.png")); } catch (Exception e) {}
     }
 
     public void updateMousePos(double x, double y) {
@@ -70,6 +74,10 @@ public class GameRenderer {
         if (gm.getCurrentState() == GameManager.GameState.MAIN_MENU) {
             drawMenu(gc);
             sm.playBGM("bg_menu.mp3"); // The SoundManager fix ensures this only triggers once
+            return;
+        }
+        if (gm.getCurrentState() == GameManager.GameState.HOW_TO_PLAY) {
+            drawHowToPlay(gc);
             return;
         }
 
@@ -172,11 +180,29 @@ public class GameRenderer {
         double targetW2 = hover2 ? BASE_BTN_WIDTH * HOVER_SCALE : BASE_BTN_WIDTH;
         currentW2 += (targetW2 - currentW2) * ANIMATION_SPEED;
         btn2X = panel.getWidth() / 2 - (currentW2 / 2);
-        btn2Y = btn1Y + 100;
+        btn2Y = btn1Y + 60;
 
         double[] size2 = drawButton(gc, btnTwoPlayer, btn2X, btn2Y, currentW2, "2 Players", Color.DARKRED);
         btn2Width = size2[0];
         btn2Height = size2[1];
+
+        // --- BUTTON 3 LOGIC ---
+        boolean hover3 = isMouseOver(mouseX, mouseY, btn3X, btn3Y, btn3Width, btn3Height);
+
+        if (hover3 && !wasHover3) {
+            sm.playPop();
+        }
+        wasHover3 = hover3;
+
+        double targetW3 = hover3 ? (BASE_BTN_WIDTH - 120) * HOVER_SCALE : (BASE_BTN_WIDTH - 120);
+        currentW3 += (targetW3 - currentW3) * ANIMATION_SPEED;
+
+        btn3X = panel.getWidth() / 2 - (currentW3 / 2);
+        btn3Y = btn2Y + 30;
+
+        double[] size3 = drawButton(gc, btnHowToPlay, btn3X, btn3Y, currentW3, "How To Play", Color.DARKBLUE);
+        btn3Width = size3[0];
+        btn3Height = size3[1];
     }
 
     private double[] drawButton(GraphicsContext gc, Image img, double x, double y, double width, String label, Color fallbackColor) {
@@ -203,6 +229,7 @@ public class GameRenderer {
     public int getMenuClickResult(double mx, double my) {
         if (isMouseOver(mx, my, btn1X, btn1Y, btn1Width, btn1Height)) return 1;
         if (isMouseOver(mx, my, btn2X, btn2Y, btn2Width, btn2Height)) return 2;
+        if (isMouseOver(mx, my, btn3X, btn3Y, btn3Width, btn3Height)) return 3;
         return -1;
     }
 
@@ -245,6 +272,98 @@ public class GameRenderer {
         gc.strokeText(sub, panel.getWidth() / 2, panel.getHeight() / 2 + 50);
         gc.setFill(Color.WHITE);
         gc.fillText(sub, panel.getWidth() / 2, panel.getHeight() / 2 + 50);
+    }
+
+    private void drawHowToPlay(GraphicsContext gc) {
+
+        // ===== Dark background =====
+        gc.setFill(Color.rgb(0,0,0,0.75));
+        gc.fillRect(0,0,panel.getWidth(),panel.getHeight());
+
+        gc.setTextAlign(TextAlignment.CENTER);
+
+        double centerX = panel.getWidth()/2;
+
+        // ===== TITLE =====
+        gc.setFont(Font.font("Arial", FontWeight.BOLD, 46));
+        gc.setStroke(Color.BLACK);
+        gc.setLineWidth(3);
+
+        gc.setFill(Color.LIGHTGREEN);
+        gc.strokeText("HOW TO PLAY", centerX, 60);
+        gc.fillText("HOW TO PLAY", centerX, 60);
+
+
+        // ===== PLAYER 1 BOX =====
+        double boxW = 250;
+        double boxH = 180;
+
+        double p1x = centerX - 280;
+        double p1y = 90;
+
+        gc.setFill(Color.rgb(0,0,0,0.6));
+        gc.fillRoundRect(p1x, p1y, boxW, boxH,20,20);
+
+        gc.setStroke(Color.LIME);
+        gc.setLineWidth(3);
+        gc.strokeRoundRect(p1x, p1y, boxW, boxH,20,20);
+
+        gc.setFill(Color.WHITE);
+        gc.setFont(Font.font("Arial", FontWeight.BOLD, 24));
+        gc.fillText("PLAYER 1", p1x + boxW/2, p1y + 40);
+
+        gc.setFont(Font.font("Arial", 20));
+        gc.fillText("Move : W A S D", p1x + boxW/2, p1y + 90);
+        gc.fillText("Bomb : SPACE", p1x + boxW/2, p1y + 130);
+
+
+        // ===== PLAYER 2 BOX =====
+        double p2x = centerX + 30;
+        double p2y = 90;
+
+        gc.setFill(Color.rgb(0,0,0,0.6));
+        gc.fillRoundRect(p2x, p2y, boxW, boxH,20,20);
+
+        gc.setStroke(Color.CYAN);
+        gc.setLineWidth(3);
+        gc.strokeRoundRect(p2x, p2y, boxW, boxH,20,20);
+
+        gc.setFill(Color.WHITE);
+        gc.setFont(Font.font("Arial", FontWeight.BOLD, 24));
+        gc.fillText("PLAYER 2", p2x + boxW/2, p2y + 40);
+
+        gc.setFont(Font.font("Arial", 20));
+        gc.fillText("Move : Arrow Keys", p2x + boxW/2, p2y + 90);
+        gc.fillText("Bomb : ENTER", p2x + boxW/2, p2y + 130);
+
+
+        // ===== GAME OBJECTIVE BOX =====
+        double goalW = 550;
+        double goalH = 150;
+
+        double goalX = centerX - goalW/2;
+        double goalY = 300;
+
+        gc.setFill(Color.rgb(0,0,0,0.6));
+        gc.fillRoundRect(goalX, goalY, goalW, goalH,20,20);
+
+        gc.setStroke(Color.ORANGE);
+        gc.setLineWidth(3);
+        gc.strokeRoundRect(goalX, goalY, goalW, goalH,20,20);
+
+        gc.setFill(Color.WHITE);
+        gc.setFont(Font.font("Arial", FontWeight.BOLD, 26));
+        gc.fillText("GAME GOAL", centerX, goalY + 40);
+
+        gc.setFont(Font.font("Arial", 20));
+        gc.fillText("MODE 1 PLAYER : Find the door to escape the dungeon", centerX, goalY + 80);
+        gc.fillText("MODE 2 PLAYER : Defeat the other player to win", centerX, goalY + 110);
+
+
+        // ===== RETURN TEXT =====
+        gc.setFill(Color.YELLOW);
+        gc.setFont(Font.font("Arial", FontWeight.BOLD, 20));
+        gc.fillText("CLICK ANYWHERE TO RETURN", centerX, panel.getHeight() - 40);
     }
 
     private boolean isGameOverState() {

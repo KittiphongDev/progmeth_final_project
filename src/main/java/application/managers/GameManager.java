@@ -14,7 +14,7 @@ import javafx.util.Duration;
 import java.util.*;
 
 public class GameManager {
-    public enum GameState { MAIN_MENU, PLAYING, PAUSED, GAME_OVER, YOU_WIN, P1_WIN, P2_WIN, DRAW }
+    public enum GameState { MAIN_MENU, HOW_TO_PLAY, PLAYING, PAUSED, GAME_OVER, YOU_WIN, P1_WIN, P2_WIN, DRAW }
 
     protected GameState currentState;
     protected int currentMode;
@@ -327,16 +327,51 @@ public class GameManager {
     }
 
     public void drawGame(GraphicsContext gc) {
+
+        if(currentState == GameState.HOW_TO_PLAY){
+            drawHowToPlay(gc);
+            return;
+        }
+
         if (currentState != GameState.MAIN_MENU) {
             gameObjects.stream()
                     .sorted((obj1, obj2) -> Double.compare(obj1.getY(), obj2.getY()))
                     .forEach(obj -> obj.draw(gc));
         }
     }
-
     public GameState getCurrentState() { return currentState; }
     public void setCurrentState(GameState s) { this.currentState = s; }
     public int getGameTimer() { return gameTimer; }
     public Player getPlayer1() { return player1; }
     public Player getPlayer2() { return player2; }
+
+    private void drawHowToPlay(GraphicsContext gc){
+
+        gc.setFill(Color.BLACK);
+        gc.fillRect(0,0,800,600);
+
+        gc.setFill(Color.WHITE);
+        gc.setFont(javafx.scene.text.Font.font(36));
+        gc.fillText("HOW TO PLAY", 280,80);
+
+        gc.setFont(javafx.scene.text.Font.font(18));
+
+        gc.fillText("OBJECTIVE",100,150);
+        gc.fillText("Destroy breakable walls and find the hidden exit.",100,180);
+
+        gc.fillText("PLAYER 1 CONTROLS",100,240);
+        gc.fillText("W A S D  - Move",100,270);
+        gc.fillText("SPACE    - Place Bomb",100,300);
+
+        gc.fillText("PLAYER 2 CONTROLS",420,240);
+        gc.fillText("Arrow Keys - Move",420,270);
+        gc.fillText("ENTER      - Place Bomb",420,300);
+
+        gc.fillText("ITEMS",100,360);
+        gc.fillText("Extra Bomb - Increase bomb capacity",100,390);
+        gc.fillText("Fire Power - Increase explosion range",100,420);
+
+        gc.setFill(Color.YELLOW);
+        gc.fillText("Press ESC to return to MAIN MENU",230,500);
+    }
 }

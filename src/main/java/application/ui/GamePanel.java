@@ -26,11 +26,24 @@ public class GamePanel extends Canvas {
 
         setOnMouseClicked(e -> {
             requestFocus();
+
+            // Main Menu
             if (gameManager.getCurrentState() == GameManager.GameState.MAIN_MENU) {
-                int selectedMode = renderer.getMenuClickResult(e.getX(), e.getY());
-                if (selectedMode != -1) {
-                    gameManager.startGame(selectedMode);
+                int result = renderer.getMenuClickResult(e.getX(), e.getY());
+
+                if (result == 1 || result == 2) {
+                    gameManager.startGame(result);
                 }
+
+                // ⭐ How To Play
+                if (result == 3) {
+                    gameManager.setCurrentState(GameManager.GameState.HOW_TO_PLAY);
+                }
+            }
+
+            // ⭐ Click กลับ Menu จาก How To Play
+            else if (gameManager.getCurrentState() == GameManager.GameState.HOW_TO_PLAY) {
+                gameManager.setCurrentState(GameManager.GameState.MAIN_MENU);
             }
         });
 

@@ -21,6 +21,16 @@ public class InputHandler {
             } else if (keyCode == KeyCode.DIGIT2 || keyCode == KeyCode.NUMPAD2) {
                 gm.startGame(2);
                 sm.playBGM("bg_in_game.mp3");
+            }else if (keyCode == KeyCode.H) {
+                gm.setCurrentState(GameManager.GameState.HOW_TO_PLAY);
+            }
+            return;
+        }
+
+        // HOW TO PLAY -> Back to Menu
+        if (gm.getCurrentState() == GameManager.GameState.HOW_TO_PLAY) {
+            if (keyCode == KeyCode.ESCAPE) {
+                gm.setCurrentState(GameManager.GameState.MAIN_MENU);
             }
             return;
         }
